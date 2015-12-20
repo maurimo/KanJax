@@ -3,8 +3,23 @@
 
 require "sqlite3"
 
+F_KANJI=1
+F_KEYWORD=2
+F_MEANING=3
+F_DESC=4
+F_STOKES=11
+F_ONYOMI=22
+F_KUNYOMI=23
+
+if ARGV.length < 2 then
+puts <<EOF
+Usage: ./create_db.rb tabbed_text_file.txt sqlite.db
+EOF
+exit
+end
+
 # Open a database
-db = SQLite3::Database.new "kanji_it.db"
+db = SQLite3::Database.new ARGV[1]
 
 # Create a database
 rows = db.execute <<-SQL
@@ -21,17 +36,17 @@ SQL
 
 # Execute a few inserts
 db.transaction
-File.open("/home/maurizio/JP/L_KANJI.txt").each_line.each_with_index{ |l, i|
+File.open(ARGV[0]).each_line.each_with_index{ |l, i|
   fields = l.gsub(/\n$/,'').split("\t",-1)
-  kanji = fields[1]
-  keyword = fields[2].gsub('&nbsp;',' ')
-  meaning = fields[3].gsub('&nbsp;',' ')
-  story = fields[4].gsub('&nbsp;',' ')
-  onyomi = fields[22]
-  kunyomi = fields[23]
-  img = fields[11].sub(/^.*"([^"]*.png)".*$/,'\1')
+  kanji = fields[F_KANJI]
+  keyword = fields[F_KEYWORD].gsub('&nbsp;',' ')
+  meaning = fields[F_MEANING].gsub('&nbsp;',' ')
+  desc = fields[F_DESC].gsub('&nbsp;',' ')
+  strokes = fields[F_STROKES].sub(/^.*"([^"]*.png)".*$/,'\1')
+  onyomi = fields[F_ONYOMI]
+  kunyomi = fields[F_KUNYOMI]
   db.execute("INSERT INTO KanjiIinfo VALUES ( ?, ?, ?, ?, ?, ?, ? )", 
-             [kanji, keyword, meaning, story, img, onyomi, kunyomi])
+             [kanji, keyword, meaning, desc, strokes, onyomi, kunyomi])
   if((i+1) % 500 == 0) then
     db.commit
     db.transaction

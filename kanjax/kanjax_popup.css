@@ -12,6 +12,7 @@
   font-family: inherit;
   font-style:  inherit;
   font-size:   80%;
+	word-break:  break-word;
 }
 #kanjax_popup #strokes {
 	max-width: 700px;

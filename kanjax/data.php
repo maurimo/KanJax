@@ -1,7 +1,7 @@
 <?php
 
 // Settings
-$DATABASE = "db/kanji_it.db";
+$DATABASE = "db/kanji.db";
 $DEBUG = true;
 
 if($DEBUG) {
@@ -74,4 +74,5 @@ echo json_encode($response);
 
 $result->finalize();
 $db_handle->close();
+
 ?>

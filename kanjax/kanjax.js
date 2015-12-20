@@ -1,5 +1,7 @@
 
 KanJax = {
+		basePath: "kanjax/",
+		
 		popupContent: "Couldn't load popup template.",
 
 		popupCache: {
@@ -13,7 +15,7 @@ KanJax = {
 				var style = document.createElement("link")
         style.setAttribute("rel", "stylesheet")
         style.setAttribute("type", "text/css")
-        style.setAttribute("href", "kanjax/kanjax_popup.css")
+        style.setAttribute("href", KanJax.basePath + "kanjax_popup.css")
 				document.head.appendChild(style);
 
 				// load the template
@@ -21,7 +23,7 @@ KanJax = {
 				div.id = "kanjax_popup";
 			  div.className = 'kanjax_forbidden';
 				document.body.appendChild(div);
-				$.get("kanjax/kanjax_popup_template.html", function(response) {
+				$.get(KanJax.basePath + "kanjax_popup_template.html", function(response) {
 						KanJax.popupContent = response;
 				});
 		},
@@ -48,9 +50,10 @@ KanJax = {
 
 				// allow editing for fields having "editable" class, the innerHTML will be edited.
 				$("#kanjax_popup .editable").editable(
-						"kanjax/data.php?kanji="+kanji, {
+						KanJax.basePath + "data.php?kanji="+kanji,
+						{
 								id        : "key",
-								indicator : "<img style='height:1.15em' src='kanjax/indicator.gif'>",
+								indicator : "<img style='height:1.15em' src='"+KanJax.basePath+"indicator.gif'>",
 								tooltip   : "Click to edit...",
 								style     : "display: inline; margin: 0px;",
 								callback  : function(value, settings) {
@@ -63,7 +66,7 @@ KanJax = {
 										else
 												KanJax.showErrorPopup(response);
 								}
-				});
+						});
 				$(div).bPopup({ speed: 120 });
 		},
 
@@ -92,16 +95,18 @@ KanJax = {
 				}
 
 				// if not in cache, load via ajax
-				$.ajax({url: "kanjax/data.php?kanji="+kanji, success: function(result){
-						result = $.parseJSON(result);
-						if(result.status == "OK") {
-								KanJax.popupCache[kanji] = result.data;
-								KanJax.showPopup(result.data, kanji);
-						}
-						else {
-								KanJax.showErrorPopup(result);	
-						}
-				}});
+				$.ajax({
+						url: KanJax.basePath + "data.php?kanji="+kanji,
+						success: function(result){
+								result = $.parseJSON(result);
+								if(result.status == "OK") {
+										KanJax.popupCache[kanji] = result.data;
+										KanJax.showPopup(result.data, kanji);
+								}
+								else {
+										KanJax.showErrorPopup(result);	
+								}
+						}});
     },
 
 		// Matches a string starting with a kanji
@@ -199,7 +204,7 @@ KanJax = {
 						style.id = "kanjax_css";
 						style.setAttribute("rel", "stylesheet");
 						style.setAttribute("type", "text/css");
-						style.setAttribute("href", "kanjax/kanjax.css");
+						style.setAttribute("href", KanJax.basePath + "kanjax.css");
 						document.head.appendChild(style);
 				}
 		},
@@ -208,16 +213,17 @@ KanJax = {
 				var el;
 				if(el = document.getElementById('kanjax_css'))
 						el.remove();
-		}
-};
+		},
 
-(function($) {
-
-		// DOM Ready
-		$(function() {
+		basicInstall: function() {
 				KanJax.setupPopup();
 				KanJax.setup();
 				KanJax.addLinks();
-		});
+		}
 
-})(jQuery);
+		fullUninstall: function() {
+				KanJax.cleanupPopup();
+				KanJax.cleanup();
+				KanJax.removeLinks();
+		}
+};
