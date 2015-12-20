@@ -18,36 +18,27 @@ rows = db.execute <<-SQL
     kunyomi TEXT(32)
   );
 SQL
-KS = [
-["昼",
-    "ore diurne",
-    "ore diurne, a mezzogiorno",
-    "Roosters in Japan are very civilised, they play the shakuhachi at nightbreak to signify the beginning of daytime.",
-    "E698BC.png",
-    "チュウ",
-    "ひる"
-	],
-	["御",
-    "onorevole",
-    "onorevole, manipolare, governare",
-    "Una persona ONOREVOLE per nessuna ragione salta la FILA alle casse della VENDITA ALL'INGROSSO per ANDARE avanti!",
-    "E5BEA1.png",
-    "ギョ、ゴ",
-    "おん-、お-、み-"
-        ],
-	["飯",
-    "pasto",
-    "pasto, riso bollito",
-    "I´m anti-fastfood. Sit down and eat a real meal!",
-    "E9A3AF.png",
-    "ハン",
-    "めし"
-  ]
-]
+
 # Execute a few inserts
-KS.each do |pair|
-  db.execute "INSERT INTO KanjiIinfo VALUES ( ?, ?, ?, ?, ?, ?, ? )", pair
-end
+db.transaction
+File.open("/home/maurizio/JP/L_KANJI.txt").each_line.each_with_index{ |l, i|
+  fields = l.gsub(/\n$/,'').split("\t",-1)
+  kanji = fields[1]
+  keyword = fields[2].gsub('&nbsp;',' ')
+  meaning = fields[3].gsub('&nbsp;',' ')
+  story = fields[4].gsub('&nbsp;',' ')
+  onyomi = fields[22]
+  kunyomi = fields[23]
+  img = fields[11].sub(/^.*"([^"]*.png)".*$/,'\1')
+  db.execute("INSERT INTO KanjiIinfo VALUES ( ?, ?, ?, ?, ?, ?, ? )", 
+             [kanji, keyword, meaning, story, img, onyomi, kunyomi])
+  if((i+1) % 500 == 0) then
+    db.commit
+    db.transaction
+  end
+  puts(i)
+}
+db.commit
 
 # Find a few rows
 db.execute( "SELECT * FROM KanjiIinfo WHERE kanji = ?", "昼") do |row|
