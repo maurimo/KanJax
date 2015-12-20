@@ -1,7 +1,7 @@
 <?php
 
 // Settings
-$DATABASE = "kanji_it.db";
+$DATABASE = "db/kanji_it.db";
 $DEBUG = true;
 
 if($DEBUG) {
@@ -14,6 +14,43 @@ if(empty($_GET["kanji"]))
         "status" => "ERR_WRONG_QUERY",
         "message" => "Variable \"kanji\" not set"
     )));
+
+if(!empty($_POST["key"])) {
+    if(!preg_match("/^\w+$/",$_POST["key"]) and $_POST["key"] != "kanji")
+        exit(json_encode(Array(
+            "status" => "ERR_INVALID_KEY",
+            "message" => "Invalid key \"".htmlspecialchars($_POST["key"])."\"."
+        )));
+        
+    try {
+        $db_handle  = new SQLite3($DATABASE, SQLITE3_OPEN_READWRITE);
+    } catch (Exception $e) {
+        exit(json_encode(Array(
+            "status" => "ERR_CANT_WRITE_DB",
+            "message" => $e->getMessage()
+        )));
+    }
+    try {
+        $statement = $db_handle->prepare(
+            'UPDATE KanjiIinfo SET '.$_POST["key"].' = :value WHERE kanji = :kanji;');
+        $statement->bindValue(':value', $_POST["value"]);
+        $statement->bindValue(':kanji', $_GET["kanji"]);
+        $result = @$statement->execute();
+        if($result)
+            exit(json_encode(Array(
+                "status" => "OK",
+                "key" => $_POST["key"],
+                "value" => $_POST["value"]
+            )));
+        else
+            throw new Exception("execute: " . $db_handle->lastErrorMsg());
+    } catch (Exception $e) {
+        exit(json_encode(Array(
+            "status" => "ERR_CANT_WRITE_DB",
+            "message" => $e->getMessage()
+        )));
+    }
+}
 
 try {
     $db_handle  = new SQLite3($DATABASE, SQLITE3_OPEN_READONLY);
@@ -34,4 +71,7 @@ if(!$row)
     )));
 $response = Array("status" => "OK", "data" => $row);
 echo json_encode($response);
+
+$result->finalize();
+$db_handle->close();
 ?>

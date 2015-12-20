@@ -2,18 +2,21 @@
 KanJax = {
 		popupContent: "Couldn't load popup template.",
 
-		popupCache: {},
+		popupCache: {
+		},
 
 		// inserts into the DOM what is necessary to show the default popup.
-		setupDefaultPopup: function() {
+		setupPopup: function() {
 				var div, style;
 
+				// load the css
 				var style = document.createElement("link")
         style.setAttribute("rel", "stylesheet")
         style.setAttribute("type", "text/css")
         style.setAttribute("href", "kanjax/kanjax_popup.css")
 				document.head.appendChild(style);
 
+				// load the template
 				div = document.createElement("div");
 				div.id = "kanjax_popup";
 			  div.className = 'kanjax_forbidden';
@@ -24,7 +27,7 @@ KanJax = {
 		},
 
 		// cleans all the default popup stuff inserted in the DOM.
-		cleanupDefaultPopup: function() {
+		cleanupPopup: function() {
 				var el;
 				if(el = document.getElementById('kanjax_popup'))
 						el.remove();
@@ -32,7 +35,8 @@ KanJax = {
 						el.remove();
 		},
 
-		showDefaultPopup: function(info) {
+		// shows the popup
+		showPopup: function(info, kanji) {
 				var div, k, content;
 				div = document.getElementById("kanjax_popup");
 				content = KanJax.popupContent.replace(
@@ -41,9 +45,29 @@ KanJax = {
 								return info[key] || ("{unknown field "+key+"}");
 						});
 				div.innerHTML = content;
+
+				// allow editing for fields having "editable" class, the innerHTML will be edited.
+				$("#kanjax_popup .editable").editable(
+						"kanjax/data.php?kanji="+kanji, {
+								id        : "key",
+								indicator : "<img style='height:1.15em' src='kanjax/indicator.gif'>",
+								tooltip   : "Click to edit...",
+								style     : "display: inline; margin: 0px;",
+								callback  : function(value, settings) {
+										var response = $.parseJSON(value);
+										if(response.status == "OK") {
+												if(kanji in KanJax.popupCache)
+														KanJax.popupCache[kanji][response.key] = response.value;
+												$(this).html(response.value);
+										}
+										else
+												KanJax.showErrorPopup(response);
+								}
+				});
 				$(div).bPopup({ speed: 120 });
 		},
 
+		// show the popup, displaying an error message
 		showErrorPopup: function(info) {
 				var div, k, content;
 				div = document.getElementById("kanjax_popup");
@@ -55,20 +79,23 @@ KanJax = {
 		},
 
 		// default click handler, uses jQuery + bPopup to show a nice popup
-		activateDefaultPopup: function(e) {
+		activatePopup: function(e) {
 				var kanji, info, img, w;
 				e.preventDefault();
 				kanji = e.currentTarget.innerText;
+
+				// test cache
 				if(kanji in KanJax.popupCache) {
-						KanJax.showDefaultPopup(KanJax.popupCache[kanji]);
+						KanJax.showPopup(KanJax.popupCache[kanji], kanji);
 						return;
 				}
 
+				// if not in cache, load via ajax
 				$.ajax({url: "kanjax/data.php?kanji="+kanji, success: function(result){
 						result = $.parseJSON(result);
 						if(result.status == "OK") {
 								KanJax.popupCache[kanji] = result.data;
-								KanJax.showDefaultPopup(result.data);
+								KanJax.showPopup(result.data, kanji);
 						}
 						else {
 								KanJax.showErrorPopup(result);	
@@ -151,7 +178,7 @@ KanJax = {
 
 								aN = document.createElement("a");
 								aN.className = "kanjax";
-								aN.onclick = KanJax.activateDefaultPopup;
+								aN.onclick = KanJax.activatePopup;
 								tN = document.createTextNode(parts[j].slice(0,1));
 								aN.appendChild(tN);
 								KanJax.insertAfter(n, aN);
@@ -187,7 +214,7 @@ KanJax = {
 
 		// DOM Ready
 		$(function() {
-				KanJax.setupDefaultPopup();
+				KanJax.setupPopup();
 				KanJax.setup();
 				KanJax.addLinks();
 		});
