@@ -1,0 +1,30 @@
+#kanjax_popup {
+  width: 700px;
+  display:none;
+  background-color: #e0e0ff;
+  border: 1px solid #8080ff;
+  padding: 1.2em;
+  border-radius: 0.8em;
+  text-align: center;
+}
+#kanjax_popup #strokes {
+	max-width: 700px;
+	max-height: 100px;
+}
+#kanjax_popup #onyomi, #kanjax_popup #kunyomi {
+  font-style: normal;
+  font-size: 24px;
+}
+#kanjax_popup #kanji {
+  padding-right: 0.6em;
+}
+#kanjax_popup #keyword {
+  padding-left: 0.6em;
+}
+#kanjax_popup .japanese {font-family: "Kochi Mincho";}
+#kanjax_popup .small {font-size: 20px;}
+#kanjax_popup .medium {font-size: 24px;}
+#kanjax_popup .large {font-size: 32px;}
+#kanjax_popup .huge {font-size: 50px;}
+#kanjax_popup .bold {font-weight: bold;}
+#kanjax_popup .italic {font-style: italic;}
