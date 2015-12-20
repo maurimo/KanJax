@@ -219,7 +219,7 @@ KanJax = {
 				KanJax.setupPopup();
 				KanJax.setup();
 				KanJax.addLinks();
-		}
+		},
 
 		fullUninstall: function() {
 				KanJax.cleanupPopup();

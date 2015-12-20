@@ -4,16 +4,19 @@
 require "sqlite3"
 
 F_KANJI=1
-F_KEYWORD=2
-F_MEANING=3
-F_DESC=4
-F_STOKES=11
+#F_KEYWORD=2
+#F_MEANING=3
+#F_DESC=4
+F_KEYWORD=8
+F_MEANING=7
+F_DESC=16
+F_STROKES=11
 F_ONYOMI=22
 F_KUNYOMI=23
 
 if ARGV.length < 2 then
 puts <<EOF
-Usage: ./create_db.rb tabbed_text_file.txt sqlite.db
+Usage: ./create_db.rb tabbed_text_file.txt sqlite.db [images_origin_dir] [images_dest_dir]
 EOF
 exit
 end
@@ -45,6 +48,9 @@ File.open(ARGV[0]).each_line.each_with_index{ |l, i|
   strokes = fields[F_STROKES].sub(/^.*"([^"]*.png)".*$/,'\1')
   onyomi = fields[F_ONYOMI]
   kunyomi = fields[F_KUNYOMI]
+  if ARGV.length >= 4 then
+    File.write("#{ARGV[3]}/#{strokes}", File.read("#{ARGV[2]}/#{strokes}"))
+  end
   db.execute("INSERT INTO KanjiIinfo VALUES ( ?, ?, ?, ?, ?, ?, ? )", 
              [kanji, keyword, meaning, desc, strokes, onyomi, kunyomi])
   if((i+1) % 500 == 0) then

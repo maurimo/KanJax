@@ -2,7 +2,10 @@
 ## Automatically display Kanji info ##
 
 This project provides a script that searches all kanji's in a web page, adding a clickable link on
-all kanjis appearing on a web page.
+all kanjis appearing on a web page. You can display the result on
+[this page](http://im.ufrj.br/~maurizio.monge/kanjax/test.html)
+
+This library was inspired by MathJax, that automatically formats mathematical formulas in web pages.
 
 ## Running the test ##
 
@@ -15,12 +18,12 @@ information on how you can build your own database can be found below.
 ## Dependencies ##
 
 KanJax depends on, on the server side:
-* PHP SQLite3
-* PHP PCRE
+* PHP SQLite3,
+* PHP pcre support,
 and on the client side:
-* jQuery [https://jquery.com/, MIT license]
-* bPopup [http://dinbror.dk/bpopup/, A very free license, see the page]
-* Jeditable [http://www.appelsiini.net/projects/jeditable (No license info?)]
+* [jQuery](https://jquery.com/), MIT license,
+* [bPopup](http://dinbror.dk/bpopup/), A very free license, see the page,
+* [Jeditable](http://www.appelsiini.net/projects/jeditable), (no license info?).
 For convenience a copy of these libraries is included in the repository.
 
 ## Basic Api
@@ -69,8 +72,11 @@ separator) using the create_db.rb Ruby script. The dependencies are:
 You need to edit the script to specify the column index corresponding to each field in the tabbed
 file, setting F_KANJI, F_KEYWORD, etc.... Then just run
 ```
-./create_db.rb tabbed_text_file.txt sqlite.db
+./create_db.rb tabbed_text_file.txt sqlite.db [images_origin_dir] [images_dest_dir]
 ```
+
+The optional "images_origin_dir", "images_dest_dir" directory are directories for copying referenced
+images contained in "images_origin_dir" to "images_dest_dir".
 
 It is very to used this script on a set of Anki notes, you just need to export notes as a CVS filed
 with tab as separator, and specify the correct field index in the script.
