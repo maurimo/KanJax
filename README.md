@@ -15,7 +15,8 @@ work. The images referenced in the database must be in kanjax/images. For short,
 download a sample database with Heisig stories and the image set
  * Database [joyo_kanji_db.tar.gz](http://im.ufrj.br/~maurizio.monge/kanjax/joyo_kanji_db.tar.gz),
  * Image set [joyo_strokes.tar.gz](http://im.ufrj.br/~maurizio.monge/kanjax/joyo_strokes.tar.gz)
-and unpack then in the root kanjax directoy.
+ 
+and unpack then in the root kanjax directory.
 More detailed information on how you can build your own database can be found below.
 
 ## Dependencies ##
