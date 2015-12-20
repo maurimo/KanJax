@@ -115,20 +115,20 @@ KanJax = {
 						el.remove();
 		},
 
-		showDefaultPopup: function(kanji, info) {
-				$('#kanjax_popup #kanji').prop('innerText', kanji);
-				$('#kanjax_popup #keyword').prop('innerText', info[0]);
-				$('#kanjax_popup #meaning').prop('innerText', info[1]);
-				$('#kanjax_popup #story').prop('innerText', info[2]);
+		showDefaultPopup: function(info) {
+				$('#kanjax_popup #kanji').prop('innerText', info.kanji);
+				$('#kanjax_popup #keyword').prop('innerText', info.keyword);
+				$('#kanjax_popup #meaning').prop('innerText', info.meaning);
+				$('#kanjax_popup #story').prop('innerText', info.desc);
 				img = new Image();
 				img.onload = function() {
 						$('#kanjax_popup #strokes').prop('src', this.src);
 						w = Math.min(700, 100*this.width/this.height);
 						$('#kanjax_popup #strokes').css({width: w+'px'});     
 				}
-				img.src = 'kanjax/images/'+info[3];
-				$('#kanjax_popup #on').prop('innerText', info[4]);
-				$('#kanjax_popup #kun').prop('innerText', info[5]);
+				img.src = 'kanjax/images/'+info.strokes;
+				$('#kanjax_popup #on').prop('innerText', info.onyomi);
+				$('#kanjax_popup #kun').prop('innerText', info.kunyomi);
 				$('#kanjax_popup #jisho').prop('href', 'http://jisho.org/search/%23kanji%20'+kanji);
 				$('#kanjax_popup #koohii').prop('href', 'http://kanji.koohii.com/study/kanji/'+kanji);
 				$('#kanjax_popup').bPopup({
@@ -143,9 +143,14 @@ KanJax = {
 				var kanji, info, img, w;
 				e.preventDefault();
 				kanji = e.currentTarget.innerText;
-
-				info = kanji_info[kanji] || ['?', '?', '?', '', '?', '?'];
-				KanJax.showDefaultPopup(kanji, info);
+				
+				$.ajax({url: "kanjax/data.php?kanji="+kanji, success: function(result){
+						result = $.parseJSON(result);
+						if(result.status == "OK")
+								KanJax.showDefaultPopup(result.data);
+				}});
+				//info = kanji_info[kanji] || ['?', '?', '?', '', '?', '?'];				
+				//KanJax.showDefaultPopup(kanji, info);
     },
 
 		// Matches a string starting with a kanji
