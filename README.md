@@ -12,8 +12,11 @@ This library was inspired by MathJax, that automatically formats mathematical fo
 For the test.html to work, a database must be present in kanjax/db/kanji.db, be readable by the web
 user, and the whole directory kanjax/db with its content must be writable if you want editing to
 work. The images referenced in the database must be in kanjax/images. For short, you can just
-download a sample database with images with Heisig stories on the github page, more detailed
-information on how you can build your own database can be found below.
+download a sample database with Heisig stories and the image set
+* Database [joyo_kanji_db.tar.gz](http://im.ufrj.br/~maurizio.monge/kanjax/joyo_kanji_db.tar.gz),
+* Image set [joyo_strokes.tar.gz](http://im.ufrj.br/~maurizio.monge/kanjax/joyo_strokes.tar.gz).
+an unpack then in the root kanjax directoy.
+More detailed information on how you can build your own database can be found below.
 
 ## Dependencies ##
 
