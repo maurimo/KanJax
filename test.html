@@ -13,10 +13,59 @@
 	});
 </script>
 </head>
+<style>
+.group {
+background-color: #e0e0ff;
+border: 1px solid #8080ff;
+margin: auto;
+margin-bottom: 1em;
+margin-top: 1em;
+padding-bottom: 1em;
+border-radius: 0.8em;
+text-align: center;
+width: 70%;
+line-height: 1.5em;
+}
+body {
+align-content: center;
+text-align: center;
+font-size: 14pt;
+font-family: Sans;
+}
+</style>
 <body>
-	<a href="http://jisho.org/search/*%E6%B3%8C*">This is a link to *泌*</a>
-  <div>This is a word: 昼御飯ひるごはん</div>
-  <div>This is another word: 一人</div>
-  <div class="kanjax_forbidden">Another word, in a forbidden div: 時折</div>
+	<h1>KanJax Demo</h1>
+	Go back to the <a href="https://github.com/maurimo/KanJax">page on Github</a>
+  <div class="group">
+		<h3>Normal text</h3>
+		かなり多くのアメリカ人が寿司を好む。<br/>
+		こうして私はいつも魚を料理する。<br/>
+		<input type="button" value="Add links in the page"
+					 onclick="KanJax.addLinks();"/>
+		<input type="button" value="Remove links in the page"
+					 onclick="KanJax.removeLinks();"/>
+	</div>
+  <div id="forbidden" class="kanjax_forbidden group">
+		<h3>Forbidden div</h3>
+		This is forbidden div, ignore when you add links in the whole page.<br/>
+		この夏最高の暑さだ。<br/>
+		この夏休みはどこかへ行くのですか。<br/>
+		But you can still force links in it:<br/>
+		<input type="button" value="Add links in this div"
+					 onclick="KanJax.addLinks(document.getElementById('forbidden'));"/>
+		<input type="button" value="Remove links in this div"
+					 onclick="KanJax.removeLinks(document.getElementById('forbidden'));"/>
+	</div>
+  <div class="group">
+		<h3>Another div</h3>
+		多くの植物は春に花をつける。<br/>
+		まもなく冬だ。<br/>
+	</div>
+  <div class="group">
+		<h3>Links</h3>
+		These are out links, kanjis in them are not touched.<br>
+		<a href="http://jisho.org/search/%23words%20%E5%BF%83">心</a>
+		<a href="http://jisho.org/search/%23words%20%E5%85%83%E6%B0%97">元気</a>
+	</div>
 </body>
 </html>
