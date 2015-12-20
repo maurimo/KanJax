@@ -13,20 +13,20 @@ For the test.html to work, a database must be present in kanjax/db/kanji.db, be 
 user, and the whole directory kanjax/db with its content must be writable if you want editing to
 work. The images referenced in the database must be in kanjax/images. For short, you can just
 download a sample database with Heisig stories and the image set
-* Database [joyo_kanji_db.tar.gz](http://im.ufrj.br/~maurizio.monge/kanjax/joyo_kanji_db.tar.gz),
-* Image set [joyo_strokes.tar.gz](http://im.ufrj.br/~maurizio.monge/kanjax/joyo_strokes.tar.gz)
+ * Database [joyo_kanji_db.tar.gz](http://im.ufrj.br/~maurizio.monge/kanjax/joyo_kanji_db.tar.gz),
+ * Image set [joyo_strokes.tar.gz](http://im.ufrj.br/~maurizio.monge/kanjax/joyo_strokes.tar.gz)
 and unpack then in the root kanjax directoy.
 More detailed information on how you can build your own database can be found below.
 
 ## Dependencies ##
 
 KanJax depends on, on the server side:
-* PHP SQLite3,
-* PHP pcre support,
+ * PHP SQLite3,
+ * PHP pcre support,
 and on the client side:
-* [jQuery](https://jquery.com/), MIT license,
-* [bPopup](http://dinbror.dk/bpopup/), A very free license, see the page,
-* [Jeditable](http://www.appelsiini.net/projects/jeditable), (no license info?).
+ * [jQuery](https://jquery.com/), MIT license,
+ * [bPopup](http://dinbror.dk/bpopup/), A very free license, see the page,
+ * [Jeditable](http://www.appelsiini.net/projects/jeditable), (no license info?).
 For convenience a copy of these libraries is included in the repository.
 
 ## Basic Api
@@ -52,21 +52,20 @@ KanJax.fullUninstall();
 
 ## Api ##
 
-* [string] **KanJax.basePath**: the path to kanjax, set to "kanjax/" by default.
-* [function] **KanJax.basicInstall()**: sets up KanJax, and adds links to the whole page.
-* [function] **KanJax.fullUninstall()**: completely removes the links, styles, and elements from the
-  page.
-* [function] **KanJax.addLinks(el)**: adds links to the element el, if el is not specified then the
+ * [string] **KanJax.basePath**: the path to kanjax, set to "kanjax/" by default.
+ * [function] **KanJax.basicInstall()**: sets up KanJax, and adds links to the whole page.
+ * [function] **KanJax.fullUninstall()**: completely removes the links, styles, and elements from the page.
+ * [function] **KanJax.addLinks(el)**: adds links to the element el, if el is not specified then the
   whole page is intended. Calling may times this function on the same element is save.
-* [function] **KanJax.removeLinks(el)**: remove all links from the element el, if el is not
+ * [function] **KanJax.removeLinks(el)**: remove all links from the element el, if el is not
   specified then the whole page is intended.
 
 ## Building your own database ##
 
 You can build your own database from a tabbed text file (that is, a CSV file having tab as a
 separator) using the create_db.rb Ruby script. The dependencies are:
-* Ruby,
-* sqlite3 ruby gem (gem install sqlite3).
+ * Ruby,
+ * sqlite3 ruby gem (gem install sqlite3).
 
 You need to edit the script to specify the column index corresponding to each field in the tabbed
 file, setting F_KANJI, F_KEYWORD, etc.... Then just run
