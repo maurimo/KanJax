@@ -3,7 +3,7 @@
 
 This project provides a script that searches all kanji's in a web page, adding a clickable link on
 all kanjis appearing on a web page. You can display the result on
-[this page](http://im.ufrj.br/~maurizio.monge/kanjax/test.html)
+[this page](http://im.ufrj.br/~maurizio.monge/kanjax/test.html).
 
 This library was inspired by MathJax, that automatically formats mathematical formulas in web pages.
 

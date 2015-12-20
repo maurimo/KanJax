@@ -44,7 +44,10 @@ KanJax = {
 				content = KanJax.popupContent.replace(
 								/\{\{(\w+)\}\}/g,
 						function(match, key) {
-								return info[key] || ("{unknown field "+key+"}");
+								if(key in info)
+										return info[key]
+								else
+										return "{unknown field "+key+"}";
 						});
 				div.innerHTML = content;
 
