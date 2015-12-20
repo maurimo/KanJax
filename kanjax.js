@@ -115,14 +115,7 @@ KanJax = {
 						el.remove();
 		},
 
-		// default click handler, uses jQuery + bPopup to show a nice popup
-		// FIX-ME: transform hardcoded sizes into settings
-		defaultClickHandler: function(e) {
-				var kanji, info, img, w;
-				e.preventDefault();
-				kanji = e.currentTarget.innerText;
-
-				info = kanji_info[kanji] || ['?', '?', '?', '', '?', '?'];
+		showDefaultPopup: function(kanji, info) {
 				$('#kanjax_popup #kanji').prop('innerText', kanji);
 				$('#kanjax_popup #keyword').prop('innerText', info[0]);
 				$('#kanjax_popup #meaning').prop('innerText', info[1]);
@@ -142,6 +135,17 @@ KanJax = {
 						speed: 120, 
 						position: ['auto', document.body.clientHeight/2-200]
 				});
+		},
+
+		// default click handler, uses jQuery + bPopup to show a nice popup
+		// FIX-ME: transform hardcoded sizes into settings
+		activateDefaultPopup: function(e) {
+				var kanji, info, img, w;
+				e.preventDefault();
+				kanji = e.currentTarget.innerText;
+
+				info = kanji_info[kanji] || ['?', '?', '?', '', '?', '?'];
+				KanJax.showDefaultPopup(kanji, info);
     },
 
 		// Matches a string starting with a kanji
@@ -218,8 +222,8 @@ KanJax = {
 								}
 
 								aN = document.createElement("a");
-								$(aN).addClass("kanjax");
-								$(aN).click(KanJax.defaultClickHandler);
+								aN.className = "kanjax";
+								aN.onclick = KanJax.activateDefaultPopup;
 								tN = document.createTextNode(parts[j].slice(0,1));
 								aN.appendChild(tN);
 								KanJax.insertAfter(n, aN);
