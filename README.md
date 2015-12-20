@@ -13,11 +13,8 @@ For the test.html to work, a database must be present in kanjax/db/kanji.db, be 
 user, and the whole directory kanjax/db with its content must be writable if you want editing to
 work. The images referenced in the database must be in kanjax/images. For short, you can just
 download a sample database with Heisig stories and the image set
-
 * Database [joyo_kanji_db.tar.gz](http://im.ufrj.br/~maurizio.monge/kanjax/joyo_kanji_db.tar.gz),
-
-* Image set [joyo_strokes.tar.gz](http://im.ufrj.br/~maurizio.monge/kanjax/joyo_strokes.tar.gz).
-
+* Image set [joyo_strokes.tar.gz](http://im.ufrj.br/~maurizio.monge/kanjax/joyo_strokes.tar.gz)
 and unpack then in the root kanjax directoy.
 More detailed information on how you can build your own database can be found below.
 
@@ -56,15 +53,11 @@ KanJax.fullUninstall();
 ## Api ##
 
 * [string] **KanJax.basePath**: the path to kanjax, set to "kanjax/" by default.
-
 * [function] **KanJax.basicInstall()**: sets up KanJax, and adds links to the whole page.
-
 * [function] **KanJax.fullUninstall()**: completely removes the links, styles, and elements from the
   page.
-
 * [function] **KanJax.addLinks(el)**: adds links to the element el, if el is not specified then the
   whole page is intended. Calling may times this function on the same element is save.
-
 * [function] **KanJax.removeLinks(el)**: remove all links from the element el, if el is not
   specified then the whole page is intended.
 
