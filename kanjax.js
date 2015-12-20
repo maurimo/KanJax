@@ -82,7 +82,8 @@ KanJax = {
 		activatePopup: function(e) {
 				var kanji, info, img, w;
 				e.preventDefault();
-				kanji = e.currentTarget.innerText;
+				kanji = e.currentTarget.textContent || e.currentTarget.innerText;
+				console.log(kanji);
 
 				// test cache
 				if(kanji in KanJax.popupCache) {
@@ -142,7 +143,7 @@ KanJax = {
 				el = el || document;
 				els = el.getElementsByClassName("kanjax");
 				while(els.length) {
-						text = els[0].innerText;
+						text = els[0].textContent || els[0].innerText;
 						if(els[0].previousSibling && els[0].previousSibling.nodeType == 3) {
 								text = els[0].previousSibling.data + text;
 								els[0].previousSibling.remove();
