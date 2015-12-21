@@ -1,11 +1,17 @@
 #kanjax_popup {
-  width: 640px;
-  display:none;
+  width:     640px;
+  display:   none;
   background-color: #e0e0ff;
-  border: 1px solid #8080ff;
-  padding: 1.2em;
+  border:    1px solid #8080ff;
+  padding:   1.2em;
   border-radius: 0.8em;
-  text-align: center;
+  text-align:    center;
+}
+#kanjax_popup div, #kanjax_popup span, #kanjax_popup td {
+  cursor: default;
+}
+#kanjax_popup .editable:hover {
+  background-color: white;
 }
 #kanjax_popup input{
   font-weight: inherit;
@@ -22,10 +28,14 @@
   font-style: normal;
 }
 #kanjax_popup #kanji {
-  padding-right: 0.6em;
+  margin-right: 0.6em;
 }
 #kanjax_popup #keyword {
-  padding-left: 0.6em;
+  margin-left: 0.6em;
+}
+#kanjax_popup #yomi, #kanjax_popup #strokes {
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
 }
 #kanjax_popup .japanese {font-family: "Kochi Mincho";}
 #kanjax_popup .small {font-size: 15px;}
