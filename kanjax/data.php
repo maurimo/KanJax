@@ -21,7 +21,7 @@ if(!empty($_POST["key"])) {
             "status" => "ERR_INVALID_KEY",
             "message" => "Invalid key \"".htmlspecialchars($_POST["key"])."\"."
         )));
-        
+
     try {
         $db_handle  = new SQLite3($DATABASE, SQLITE3_OPEN_READWRITE);
     } catch (Exception $e) {
