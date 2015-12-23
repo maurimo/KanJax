@@ -135,7 +135,7 @@ KanJax = {
     textNodesUnder : function(el) {
         var n, p, list=[], forbid, i, forbid_list = [], walker, doc;
 
-				doc = el.ownerDocument;
+                doc = el.ownerDocument;
         forbid = el.getElementsByClassName("kanjax_forbidden");
         for(i = 0; i < forbid.length; ++i) {
             walker = doc.createTreeWalker(forbid[i], NodeFilter.SHOW_TEXT, null, false);
@@ -178,12 +178,12 @@ KanJax = {
 
         el = el || document.body;
         list = KanJax.textNodesUnder(el);
-				console.log(list)
-				KanJax.list = list
+        //console.log(list)
+        //KanJax.list = list
 
         for(i = 0; i<list.length; i++) {
             n = list[i];
-						doc = n.ownerDocument;
+            doc = n.ownerDocument;
             parts = n.data.split(KanJax.SPLIT_REG);
 
             if(parts[0].match(KanJax.START_REG))
@@ -212,7 +212,7 @@ KanJax = {
 
     setup : function(doc) {
         var style;
-				doc = (doc || document);
+                doc = (doc || document);
         if(!doc.getElementById("kanjax_css")) {
             style = doc.createElement("link");
             style.id = "kanjax_css";
@@ -226,7 +226,7 @@ KanJax = {
 
     cleanup: function(doc) {
         var el;
-				doc = (doc || document);
+                doc = (doc || document);
         if(el = doc.getElementById('kanjax_css'))
             el.remove();
     },
