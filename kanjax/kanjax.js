@@ -133,17 +133,18 @@ KanJax = {
 
     // Utility to get all text nodes under a given element
     textNodesUnder : function(el) {
-        var n, p, list=[], forbid, i, forbid_list = [], walker;
+        var n, p, list=[], forbid, i, forbid_list = [], walker, doc;
 
+				doc = el.ownerDocument;
         forbid = el.getElementsByClassName("kanjax_forbidden");
         for(i = 0; i < forbid.length; ++i) {
-            walker = document.createTreeWalker(forbid[i], NodeFilter.SHOW_TEXT, null, false);
+            walker = doc.createTreeWalker(forbid[i], NodeFilter.SHOW_TEXT, null, false);
             while(n = walker.nextNode())
                 if(n.parentNode.tagName != "A")
                     forbid_list.push(n);
         }
 
-        walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+        walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
         while(n = walker.nextNode())
         if(forbid_list.indexOf(n) < 0 && (n.parentNode.tagName != "A"))
             list.push(n);
@@ -173,13 +174,16 @@ KanJax = {
 
     // Looks for all kanjis, and for each sets a link with a click function.
     addLinks : function(el) {
-        var list, n, parts, i, j, aN, tN;
+        var list, n, parts, i, j, aN, tN, doc;
 
         el = el || document.body;
         list = KanJax.textNodesUnder(el);
-        
+				console.log(list)
+				KanJax.list = list
+
         for(i = 0; i<list.length; i++) {
             n = list[i];
+						doc = n.ownerDocument;
             parts = n.data.split(KanJax.SPLIT_REG);
 
             if(parts[0].match(KanJax.START_REG))
@@ -187,14 +191,14 @@ KanJax = {
 
             for(j = parts.length-1; j >= 1; j--) {
                 if(parts[j].length > 1) {
-                    tN = document.createTextNode(parts[j].slice(1));
+                    tN = doc.createTextNode(parts[j].slice(1));
                     KanJax.insertAfter(n, tN);
                 }
 
-                aN = document.createElement("a");
+                aN = doc.createElement("a");
                 aN.className = "kanjax";
                 aN.onclick = KanJax.activatePopup;
-                tN = document.createTextNode(parts[j].slice(0,1));
+                tN = doc.createTextNode(parts[j].slice(0,1));
                 aN.appendChild(tN);
                 KanJax.insertAfter(n, aN);
             }
@@ -206,21 +210,24 @@ KanJax = {
         }
     },
 
-    setup : function() {
+    setup : function(doc) {
         var style;
-        if(!document.getElementById("kanjax_css")) {
-            style = document.createElement("link");
+				doc = (doc || document);
+        if(!doc.getElementById("kanjax_css")) {
+            style = doc.createElement("link");
             style.id = "kanjax_css";
             style.setAttribute("rel", "stylesheet");
             style.setAttribute("type", "text/css");
-            style.setAttribute("href", KanJax.basePath + "kanjax.css");
-            document.head.appendChild(style);
+            //style.setAttribute("href", KanJax.basePath + "kanjax.css");
+            style.setAttribute("href", "/~maurizio/kanjax/kanjax/" + "kanjax.css");
+            doc.head.appendChild(style);
         }
     },
 
-    cleanup: function() {
+    cleanup: function(doc) {
         var el;
-        if(el = document.getElementById('kanjax_css'))
+				doc = (doc || document);
+        if(el = doc.getElementById('kanjax_css'))
             el.remove();
     },
 
