@@ -2,8 +2,7 @@
 ## Automatically display Kanji info ##
 
 This project provides a script that searches all kanji's in a web page, adding a clickable link on
-all kanjis appearing on a web page. You can display the result on
-[this page](http://im.ufrj.br/~maurizio.monge/kanjax/test.html).
+all kanjis appearing on a web page. Here are links to [simple example page](http://im.ufrj.br/~maurizio.monge/kanjax/test.html) and an [experimental proxy page](http://im.ufrj.br/~maurizio.monge/kanjax/test_proxy.html) adding kanji info to a web page.
 
 This library was inspired by MathJax, that automatically formats mathematical formulas in web pages.
 
@@ -12,11 +11,7 @@ This library was inspired by MathJax, that automatically formats mathematical fo
 For the test.html to work, a database must be present in kanjax/db/kanji.db, be readable by the web
 user, and the whole directory kanjax/db with its content must be writable if you want editing to
 work. The images referenced in the database must be in kanjax/images. For short, you can just
-download a sample database with Heisig stories and the image set
- * Database [joyo_kanji_db.tar.gz](http://im.ufrj.br/~maurizio.monge/kanjax/joyo_kanji_db.tar.gz),
- * Image set [joyo_strokes.tar.gz](http://im.ufrj.br/~maurizio.monge/kanjax/joyo_strokes.tar.gz)
- 
-and unpack then in the root kanjax directory.
+download a sample database with Heisig stories and an image set on the [Releases page](https://github.com/maurimo/KanJax/releases) and unpack then in the root kanjax directory.
 More detailed information on how you can build your own database can be found below.
 
 ## Dependencies ##
@@ -54,8 +49,12 @@ KanJax.fullUninstall();
 ## Api ##
 
  * [string] **KanJax.basePath**: the path to kanjax, set to "kanjax/" by default.
- * [function] **KanJax.basicInstall()**: sets up KanJax, and adds links to the whole page.
+ * [function] **KanJax.basicInstall()**: sets up KanJax, and adds links to the whole page, equivalent to setup()+setupPopup()+addLinks().
  * [function] **KanJax.fullUninstall()**: completely removes the links, styles, and elements from the page.
+ * [function] **Kanjax.setupPopup()**: sets up the main page for displaying the popup.
+ * [function] **Kanjax.cleanupPopup()**: cleans up what was installed by setupPopup().
+ * [function] **Kanjax.setup(doc)**: sets up a document for having kanji info added, if doc is null the current document will be used.
+ * [function] **Kanjax.cleanup(doc)**: cleans up what was installed by setup().
  * [function] **KanJax.addLinks(el)**: adds links to the element el, if el is not specified then the
   whole page is intended. Calling may times this function on the same element is save.
  * [function] **KanJax.removeLinks(el)**: remove all links from the element el, if el is not
@@ -80,6 +79,11 @@ images contained in "images_origin_dir" to "images_dest_dir".
 It is very to used this script on a set of Anki notes, you just need to export notes as a CVS filed
 with tab as separator, and specify the correct field index in the script.
 
+You can import back changes in a tabbed text running
+```
+./import_changes_from_db.rb ORIG_tabbed_text_file.txt sqlite.db EDITED_tabbed_text_file.txt
+```
+
 ## Customizing ##
 
 KanJax is highly customizable, to customize your popup just edit the kanjax/kanjax_popup.css and
@@ -92,5 +96,5 @@ id should correspond to the field name (in the database) that will be edited.
 
 ## License ##
 
-You are free to do what you want with this library, buy if you find it useful
-and feel like, you may give a donation on my github page!
+You are free to do what you want with this library, please credit my work you use it.
+If you find it useful and feel like, you may give a donation on my github page!

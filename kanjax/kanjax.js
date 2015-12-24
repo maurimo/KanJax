@@ -241,7 +241,7 @@ KanJax = {
 
     setup : function(doc) {
         var style;
-                doc = (doc || document);
+        doc = (doc || document);
         if(!doc.getElementById("kanjax_css")) {
             style = doc.createElement("link");
             style.id = "kanjax_css";
