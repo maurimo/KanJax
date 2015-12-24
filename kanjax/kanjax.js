@@ -247,8 +247,7 @@ KanJax = {
             style.id = "kanjax_css";
             style.setAttribute("rel", "stylesheet");
             style.setAttribute("type", "text/css");
-            //style.setAttribute("href", KanJax.basePath + "kanjax.css");
-            style.setAttribute("href", "/~maurizio/kanjax/kanjax/" + "kanjax.css");
+            style.setAttribute("href", KanJax.basePath + "kanjax.css");
             doc.head.appendChild(style);
         }
     },
