@@ -120,24 +120,43 @@ foreach($header_entries as $v) {
 
 
 // fix relative <link href=..., <image src=..., <script src=...
-$contents = preg_replace_callback('/(<(?:link|img|script)\s(?:[^<>]+\s)?(?:href|src)=(["\']))(\\/[^"\'\\/][^"\']+)(\2)/',
-function ($match) use($urlbase) {
-    return $match[1] . $urlbase . $match[3] . $match[4];
+//$contents = preg_replace_callback('/(<(?:use|link|img|script)\s(?:[^<>]+\s)?(?:xlink\\:href|href|src)=(["\']))(\\/[^"\'\\/][^"\']+)(\2)/',
+$contents = preg_replace_callback('/(<(?:use|link|img|script)\s(?:[^<>]+\s)?(?:xlink\\:href|href|src)=(["\']))([^"\'#][^"]+)(\2)/',
+function ($match) use($urlbase, $myurl) {
+    if(preg_match('/\\.svg(?:$|#)/', $match[3])) {
+        $address = $match[3];
+        $extra = '';
+        if(preg_match('/^(.+)(#.*)$/',$address, $m)) {
+            $address = $m[1];
+            $extra = $m[2];
+        }
+        if(preg_match("/^\\/[^\\/]/", $address)) //relative?
+            $address = $urlbase . $address;
+        $newurl = htmlentities($myurl . "?url=" . urlencode($address)) . $extra;
+        return $match[1] . $newurl . $match[4];
+    }
+    else if(preg_match("/^\\/[^\\/]/", $match[3]))
+        return $match[1] . $urlbase . $match[3] . $match[4];
+    else
+        return $match[0];
 }, $contents);
 
 // fix all non-anchor <a href=...>
 $contents = preg_replace_callback('/(<a\s(?:[^<>]+\s)?href=(["\']))([^"\'#][^"]+)(\2)/',
 function ($match) use($urlbase, $myurl) {
     $address = $match[3];
+    $extra = '';
+    if(preg_match('/^(.+)(#.*)$/',$address, $m)) {
+        $address = $m[1];
+        $extra = $m[2];
+    }
     if(preg_match("/^\\/[^\\/]/", $address)) //relative?
         $address = $urlbase . $address;
-    $newurl = htmlentities($myurl . "?url=" . urlencode($address));
+    $newurl = htmlentities($myurl . "?url=" . urlencode($address)) . $extra;
     return $match[1] . $newurl . $match[4];
 }, $contents);
 
 // fix all non-anchor <form action=...>
-//$contents = preg_replace_callback('/(<form\s(?:[^<>\s]+\s|method=(["\'])([^<>"\']+)\2\s+)*action=(["\']))([^"\'#][^"]+)(\4(?:\s+method=(["\']+)([^<>"\'])\7|\s+[^<>\s]+|\s)*)/',
-//$contents = preg_replace_callback('/(<form\s(?:[^<>\s]+\s)*action=(["\']))([^"\'#][^"]+)(\2(?:\s+[^<>\s]+)*)/',
 $contents = preg_replace_callback('/(<form\s(?:[^<>\s]+\s|method=(["\'])([^<>"\']+)\2\s+)*action=(["\']))([^"\'#][^"]+)(\4(?:\s+method=(["\']+)([^<>"\']+)\7|\s+[^<>\s]+)*>)/',
 function ($match) use($urlbase, $myurl) {
     //print_r($match); exit;
