@@ -87,13 +87,17 @@ KanJax = {
     // default click handler, uses jQuery + bPopup to show a nice popup
     activatePopup: function(e) {
         var kanji, info, img, w;
+
+        if((e.type == "mousedown") && e.which != 2)
+            return true;
+
         e.preventDefault();
         kanji = e.currentTarget.textContent || e.currentTarget.innerText;
 
         // test cache
         if(kanji in KanJax.popupCache) {
             KanJax.showPopup(KanJax.popupCache[kanji], kanji);
-            return;
+            return false;
         }
 
         // if not in cache, load via ajax
@@ -109,6 +113,8 @@ KanJax = {
                     KanJax.showErrorPopup(result);  
                 }
             }});
+
+        return false;
     },
 
     // Matches a string starting with a kanji
@@ -133,56 +139,77 @@ KanJax = {
 
     // Utility to get all text nodes under a given element
     textNodesUnder : function(el) {
-        var n, p, list=[], forbid, i, forbid_list = [], walker, doc;
+        var n, p, list=[], forbid, i, forbid_list = [], links, links_list = [], walker, doc, inlink;
 
-                doc = el.ownerDocument;
+        doc = el.ownerDocument;
+
         forbid = el.getElementsByClassName("kanjax_forbidden");
         for(i = 0; i < forbid.length; ++i) {
             walker = doc.createTreeWalker(forbid[i], NodeFilter.SHOW_TEXT, null, false);
             while(n = walker.nextNode())
-                if(n.parentNode.tagName != "A")
-                    forbid_list.push(n);
+                forbid_list.push(n);
+        }
+
+        links = el.getElementsByTagName("A");
+        for(i = 0; i < links.length; ++i) {
+            walker = doc.createTreeWalker(links[i], NodeFilter.SHOW_TEXT, null, false);
+            while(n = walker.nextNode())
+                links_list.push(n);
         }
 
         walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
-        while(n = walker.nextNode())
-        if(forbid_list.indexOf(n) < 0 && (n.parentNode.tagName != "A"))
-            list.push(n);
+        while(n = walker.nextNode()) {
+            if(n.parentNode.tagName == "A" && n.parentNode.className == "kanjax")
+                continue;
+            if(forbid_list.indexOf(n) >= 0)
+                continue;
+            inlink = !!(links_list.indexOf(n) >= 0);
+            list.push([n, inlink]);
+        }
         return list;
     },
 
     // Removes all links, and the text is again put in a text node
     removeLinks : function(el) {
-        var els, text, tN;
+        var elsc, i, text, tN;
 
-        el = el || document;
-        els = el.getElementsByClassName("kanjax");
-        while(els.length) {
-            text = els[0].textContent || els[0].innerText;
-            if(els[0].previousSibling && els[0].previousSibling.nodeType == 3) {
-                text = els[0].previousSibling.data + text;
-                KanJax.remove(els[0].previousSibling);
+        el = el || document.body;
+
+        // make els an array, and NOT and HTMLCollection.
+        // If it is left as HTMLCollection and we iterate while not empty,
+        // it will trigger a slow behavior (bug?) in Chrome, and link
+        // removal is made very very slow (probably because the whole
+        // collection needs to be sorted at each step, or something).
+        els = [].slice.call(el.getElementsByClassName("kanjax"));
+
+        for(i = 0; i<els.length; i++) {
+            if(els.length % 200 == 0)
+                console.log(els.length);
+            text = els[i].textContent || els[i].innerText;
+            if(els[i].previousSibling && els[i].previousSibling.nodeType == 3) {
+                text = els[i].previousSibling.data + text;
+                KanJax.remove(els[i].previousSibling);
             }
-            if(els[0].nextSibling && els[0].nextSibling.nodeType == 3) {
-                text = text + els[0].nextSibling.data;
-                KanJax.remove(els[0].nextSibling);
+            if(els[i].nextSibling && els[i].nextSibling.nodeType == 3) {
+                text = text + els[i].nextSibling.data;
+                KanJax.remove(els[i].nextSibling);
             }
-            tN = document.createTextNode(text);
-            els[0].parentNode.replaceChild(tN, els[0]);
+            tN = els[i].ownerDocument.createTextNode(text);
+            els[i].parentNode.replaceChild(tN, els[i]);
         }
     },
 
     // Looks for all kanjis, and for each sets a link with a click function.
     addLinks : function(el) {
-        var list, n, parts, i, j, aN, tN, doc;
+        var list, n, islink, parts, i, j, aN, tN, doc;
 
         el = el || document.body;
         list = KanJax.textNodesUnder(el);
-        //console.log(list)
-        //KanJax.list = list
 
         for(i = 0; i<list.length; i++) {
-            n = list[i];
+            n = list[i][0];
+            islink = list[i][1];
+            
             doc = n.ownerDocument;
             parts = n.data.split(KanJax.SPLIT_REG);
 
@@ -197,7 +224,9 @@ KanJax = {
 
                 aN = doc.createElement("a");
                 aN.className = "kanjax";
-                aN.onclick = KanJax.activatePopup;
+                if(!islink)
+                  aN.onclick = KanJax.activatePopup;
+                aN.onmousedown = KanJax.activatePopup;
                 tN = doc.createTextNode(parts[j].slice(0,1));
                 aN.appendChild(tN);
                 KanJax.insertAfter(n, aN);
@@ -226,7 +255,7 @@ KanJax = {
 
     cleanup: function(doc) {
         var el;
-                doc = (doc || document);
+        doc = (doc || document);
         if(el = doc.getElementById('kanjax_css'))
             el.remove();
     },

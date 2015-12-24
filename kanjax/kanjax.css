@@ -1,4 +1,12 @@
 .kanjax {
-  color: #a00000;
+  color: #c00000 !important;
+  cursor: pointer;
+  padding: 0px !important;
+}
+.kanjax:hover {
+  text-decoration: none;
+}
+a .kanjax {
+  color: #a000a0 !important;
   cursor: pointer;
 }

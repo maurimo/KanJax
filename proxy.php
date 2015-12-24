@@ -76,7 +76,7 @@ list( $header, $contents ) = preg_split('/([\r\n][\r\n])\\1/', $response, 2 );
 // Split header text into an array.
 $header_entries = preg_split( '/[\r\n]+/', $header );
 
-$header_entries = preg_replace_callback("/^(location:)\s+(.*)/", function($match) use($myurl, $urlbase) {
+$header_entries = preg_replace_callback("/^(location:)\s+(.*)/i", function($match) use($myurl, $urlbase) {
     $address = $match[2];
     //echo $address."\n";
     //echo $urlbase."\n";
