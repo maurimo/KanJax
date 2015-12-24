@@ -7,22 +7,41 @@
 // Redirections are supported and rewritten to load via the proxy.
 // Links to images, css script and javascripts are rewritten in order
 // to be loaded from the original web site.
+// Forms are rewritten adding hidden input fields to specify the original
+// url, this allows simple forms (like Wikipedia search) to work.
 //
 // Limitations: of course everything is done via simple regular expressions,
 // and for instance will mess up with text strings contained in javascript,
 // and everything done via ajax will most likely not work.
-// Also forms will not work (at the moment).
+// Note also that most forms probably will not work.
 
 
 error_reporting(-1);
 ini_set('display_errors', 'On');
 
-
-if(empty($_GET['url']))
-    exit("Error, url parameter not specified!");
+$postinfo = false;
+if(!empty($_GET['__method__']) and !empty($_GET['__url__'])) {
+    $method = $_GET['__method__'];
+    $url = $_GET['__url__'];
+    $params = array();
+    foreach($_GET as $key=>$value) {
+        if($key != '__method__' and $key != '__url__')
+            $params[] .= $key.'='.urlencode($value);
+    }
+    $params = implode('&', $params);
+    if(strtolower($method) == "post")
+        $postinfo = $params;
+    else
+        $url .= '?' . $params;
+}
+else {
+    if(empty($_GET['url']))
+        exit("Error, url parameter not specified!");
+    $method = false;
+    $url = $_GET['url'];
+}
 
 $myurl = preg_replace("/\\?.+/",'',$_SERVER['REQUEST_URI']);
-$url = $_GET['url'];
 $urlbase = preg_replace("/^((?:\w+:\\/\\/)?[^\\/]+)(?:\\/.*)?$/", "\\1", $url);
 //exit($urlbase);
 $cookiedomain = preg_replace("/^(?:https?:\\/\\/)?(?:www\\.)?([^\\/]+)(?:\\/.*)?$/", "\\1", $url);
@@ -35,6 +54,9 @@ $ch = curl_init( $url );
 if ( strtolower($_SERVER['REQUEST_METHOD']) == 'post' ) {
     curl_setopt( $ch, CURLOPT_POST, true );
     curl_setopt( $ch, CURLOPT_POSTFIELDS, $_POST );
+} else if($postinfo) {
+    curl_setopt( $ch, CURLOPT_POST, true );
+    curl_setopt( $ch, CURLOPT_POSTFIELDS, $postinfo);
 }
 
 // Cookies
@@ -111,6 +133,25 @@ function ($match) use($urlbase, $myurl) {
         $address = $urlbase . $address;
     $newurl = htmlentities($myurl . "?url=" . urlencode($address));
     return $match[1] . $newurl . $match[4];
+}, $contents);
+
+// fix all non-anchor <form action=...>
+//$contents = preg_replace_callback('/(<form\s(?:[^<>\s]+\s|method=(["\'])([^<>"\']+)\2\s+)*action=(["\']))([^"\'#][^"]+)(\4(?:\s+method=(["\']+)([^<>"\'])\7|\s+[^<>\s]+|\s)*)/',
+//$contents = preg_replace_callback('/(<form\s(?:[^<>\s]+\s)*action=(["\']))([^"\'#][^"]+)(\2(?:\s+[^<>\s]+)*)/',
+$contents = preg_replace_callback('/(<form\s(?:[^<>\s]+\s|method=(["\'])([^<>"\']+)\2\s+)*action=(["\']))([^"\'#][^"]+)(\4(?:\s+method=(["\']+)([^<>"\']+)\7|\s+[^<>\s]+)*>)/',
+function ($match) use($urlbase, $myurl) {
+    //print_r($match); exit;
+    $method = (!empty($math[8]) and $match[8]!=='') ? $match[8] : 
+              ((!empty($math[3]) and $match[3]!='') ? $match[3] : "GET");
+    $address = $match[5];
+    if(preg_match("/^\\/[^\\/]/", $address)) //relative?
+        $address = $urlbase . $address;
+    $address = htmlentities($address);
+    //$newurl = htmlentities($myurl . "?__method__=1&__url__=" . urlencode($address));
+    $retv = $match[1] . $myurl . $match[6];
+    $retv .= "<input type=\"hidden\" name=\"__method__\" value=\"$method\"/>";
+    $retv .= "<input type=\"hidden\" name=\"__url__\" value=\"$address\"/>";
+    return $retv;
 }, $contents);
 
 
