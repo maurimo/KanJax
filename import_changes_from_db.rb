@@ -1,18 +1,26 @@
 #!/usr/bin/env ruby
 # coding: utf-8
 
-require "sqlite3"
+require 'sqlite3'
 
 F_KANJI=1
-#F_KEYWORD=2
-#F_MEANING=3
-#F_DESC=4
-F_KEYWORD=8
-F_MEANING=7
-F_DESC=16
+F_KEYWORD=2
+F_MEANING=3
+F_DESC=4
+#F_KEYWORD=8
+#F_MEANING=7
+#F_DESC=16
 F_STROKES=11
 F_ONYOMI=22
 F_KUNYOMI=23
+
+def unquote(text)
+  text =~ /^"(.*)"$/ ? $1.gsub('""','"') : text
+end
+
+def quote(text)
+  text =~ /"/ ? '"'+text.gsub('"','""')+'"' : text
+end
 
 if ARGV.length < 3 then
 puts <<EOF
@@ -29,7 +37,7 @@ db = SQLite3::Database.new(ARGV[1],
 nchanged=0
 File.open(ARGV[2],'w'){ |o|
 File.open(ARGV[0]).each_line.each_with_index{ |l, ridx|
-  fields = l.gsub(/\n$/,'').split("\t",-1)
+  fields = l.gsub(/\n$/,'').split("\t",-1).collect{ |f| unquote(f) }
   rows = db.execute( "SELECT * FROM KanjiIinfo WHERE kanji = ?", fields[F_KANJI])
   newfields = fields.dup
   unless rows.empty? then
@@ -49,7 +57,7 @@ File.open(ARGV[0]).each_line.each_with_index{ |l, ridx|
       end
     }
   end
-  o.puts newfields.join("/t")
+  o.puts newfields.collect{|f| quote(f)}.join("/t")
 }
 }
 

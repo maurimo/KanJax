@@ -11,21 +11,28 @@ KanJax = {
     setupPopup: function() {
         var div, style;
 
-        // load the css
-        var style = document.createElement("link")
-        style.setAttribute("rel", "stylesheet")
-        style.setAttribute("type", "text/css")
-        style.setAttribute("href", KanJax.basePath + "kanjax_popup.css")
-        document.head.appendChild(style);
-
         // load the template
-        div = document.createElement("div");
-        div.id = "kanjax_popup";
-        div.className = 'kanjax_forbidden';
-        document.body.appendChild(div);
         $.get(KanJax.basePath + "kanjax_popup_template.html", function(response) {
             KanJax.popupContent = response;
-        });
+        })
+
+        // load the css
+        if(!document.getElementById('kanjax_style')) {
+            style = document.createElement("link");
+            style.id = "kanjax_style";
+            style.setAttribute("rel", "stylesheet");
+            style.setAttribute("type", "text/css");
+            style.setAttribute("href", KanJax.basePath + "kanjax_popup.css");
+            document.head.appendChild(style);
+        }
+
+        // load the popup
+        if(!document.getElementById('kanjax_popup')) {
+            div = document.createElement("div");
+            div.id = "kanjax_popup";
+            div.className = 'kanjax_forbidden';
+            document.body.appendChild(div);
+        }
     },
 
     // cleans all the default popup stuff inserted in the DOM.
@@ -39,13 +46,15 @@ KanJax = {
 
     // shows the popup
     showPopup: function(info, kanji) {
-        var div, k, content;
-        div = document.getElementById("kanjax_popup");
+        var div, k, content, x, y;
+        div = document.getElementById("kanjax_popup");        
         content = KanJax.popupContent.replace(
                 /\{\{(\w+)\}\}/g,
             function(match, key) {
                 if(key in info)
                     return info[key]
+                else if(key == 'KANJAX_BASEPATH')
+                    return KanJax.basePath;
                 else
                     return "{unknown field "+key+"}";
             });
@@ -70,7 +79,25 @@ KanJax = {
                         KanJax.showErrorPopup(response);
                 }
             });
-        $(div).bPopup({ speed: 120 });
+        $(div).find('img').load(function() {
+            var x,y;
+            y = document.body.scrollTop + (document.body.clientHeight - $(div).height()) / 2;
+            x = document.body.scrollLeft + (document.body.clientWidth - $(div).width()) / 2;
+            //console.log('new: '+x+', '+y);
+            $(div).css({left: x, top: y});
+        });
+        $(div).css({
+            position: "absolute", display: 'block', visibility: 'hidden',
+            marginLeft: 0, marginTop: 0, top: 0, left: 0
+        });
+        y = document.body.scrollTop + (document.body.clientHeight - $(div).height()) / 2;
+        x = document.body.scrollLeft + (document.body.clientWidth - $(div).width()) / 2;
+        //console.log('base: '+x+', '+y);
+        $(div).css({ display: 'none', visibility: 'visible' })
+        $(div).bPopup({
+            speed: 120,
+            position: [x, y]
+        });
     },
 
     // show the popup, displaying an error message
