@@ -43,7 +43,6 @@ else {
 
 $myurl = preg_replace("/\\?.+/",'',$_SERVER['REQUEST_URI']);
 $urlbase = preg_replace("/^((?:\w+:\\/\\/)?[^\\/]+)(?:\\/.*)?$/", "\\1", $url);
-//exit($urlbase);
 $cookiedomain = preg_replace("/^(?:https?:\\/\\/)?(?:www\\.)?([^\\/]+)(?:\\/.*)?$/", "\\1", $url);
 
 if ( !$url )
@@ -100,8 +99,6 @@ $header_entries = preg_split( '/[\r\n]+/', $header );
 
 $header_entries = preg_replace_callback("/^(location:)\s+(.*)/i", function($match) use($myurl, $urlbase) {
     $address = $match[2];
-    //echo $address."\n";
-    //echo $urlbase."\n";
     if(preg_match("/^\\/[^\\/]/", $address)) //relative?
         $address = $urlbase . $address;
     $newurl = htmlentities($myurl . "?url=" . urlencode($address));

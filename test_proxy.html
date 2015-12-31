@@ -88,22 +88,36 @@ function myRemoveLinks() {
 }
 
 myHistory = [];
+
 function myFrameLoad() {
   var iframe = document.getElementById("myiframe");
-  var address = document.getElementById("address");
-  var autoadd = document.getElementById("autoadd");
-  console.log(iframe.contentWindow.location.search);
+  var proxypath = window.location.pathname.replace(/test_proxy\.html$/,'') + 'proxy.php';
+  if(iframe.contentWindow.location.origin != window.location.origin
+    || iframe.contentWindow.location.pathname != proxypath) {
+    var outurl = window.location.origin + proxypath + '?url=';
+    var inurl = iframe.contentWindow.location.origin;
+    if(iframe.contentWindow.location.origin == window.location.origin
+      && myHistory.length >= 1)
+      inurl = new URL(myHistory[0]).origin;
+    inurl += iframe.contentWindow.location.pathname + iframe.contentWindow.location.search;
+    var url = outurl + encodeURIComponent(inurl) + iframe.contentWindow.location.hash;
+    iframe.contentWindow.location = url;
+    return;
+  }
+
   var params = iframe.contentWindow.location.search;
   var url = decodeURIComponent(params.replace(/.*url=/,''));
 
+  var address = document.getElementById("address");
   address.value = url;
-  
+
   myHistory.unshift(url);
   if(myHistory.length > 1) {
     var back = document.getElementById("back");
     back.disabled = false;
   }
 
+  var autoadd = document.getElementById("autoadd");
   if(autoadd.checked)
     myAddLinks();
 }
@@ -142,6 +156,7 @@ function myBack() {
                               onclick="myRemoveLinks();"/>
 </td></tr></table>
     <div id="showerr"></div>
-    <iframe id="myiframe" onLoad="myFrameLoad()" src="proxy.php?url=https%3A%2F%2Fja.wikipedia.org%2Fwiki%2F%25E6%2597%25A5%25E6%259C%25AC"></iframe>
+    <!-- <iframe id="myiframe" onLoad="myFrameLoad()" src="proxy.php?url=https%3A%2F%2Fja.wikipedia.org%2Fwiki%2F%25E6%2597%25A5%25E6%259C%25AC"></iframe> -->
+    <iframe id="myiframe" onLoad="myFrameLoad()" src="proxy.php?url=http%3A%2F%2Fjisho.org%2Fsearch%2F%2523kanji%2520%25E8%25B2%25AB"></iframe>
 </body>
 </html>
