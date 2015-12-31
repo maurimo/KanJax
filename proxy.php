@@ -41,7 +41,7 @@ else {
     $url = $_GET['url'];
 }
 
-$myurl = preg_replace("/\\?.+/",'',$_SERVER['REQUEST_URI']);
+$myurl = preg_replace("/[\\?#].+/",'',$_SERVER['REQUEST_URI']);
 $urlbase = preg_replace("/^((?:\w+:\\/\\/)?[^\\/]+)(?:\\/.*)?$/", "\\1", $url);
 $cookiedomain = preg_replace("/^(?:https?:\\/\\/)?(?:www\\.)?([^\\/]+)(?:\\/.*)?$/", "\\1", $url);
 
@@ -170,7 +170,29 @@ function ($match) use($urlbase, $myurl) {
     return $retv;
 }, $contents);
 
+// hijack XMLHttpRequest
+$srv = $_SERVER['REQUEST_URI'];
+$urlpath = preg_replace('/\\/[^\\/]+$/', '', $url);
+$repl = <<<EOD
+<head>
+<script language="JavaScript" type="text/javascript">
+(function(open) {
+  XMLHttpRequest.prototype.open = function(method, url, async, user, pass) {
+    if(!url.match(/^[a-z]+:\/\//)) {
+      if(!url.startsWith('/'))
+        url = "$urlpath/" + url;
+      else
+        url = "$urlbase" + url;
+    }
+    url = "$myurl?url=" + encodeURIComponent(url);
+    console.log(url);
+    open.call(this, method, url, async, user, pass);
+  };
+})(XMLHttpRequest.prototype.open);
+</script>
+EOD;
+$contents = preg_replace('/<head>/', $repl, $contents);
 
 print $contents;
-  
+
 ?>
