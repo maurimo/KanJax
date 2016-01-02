@@ -19,7 +19,7 @@ KanJax = {
         return false;
     },
     
-    useRubyElement: true,
+    useRubyElement: false,
     
     popupContent: "Couldn't load popup template.",
 
@@ -169,7 +169,8 @@ KanJax = {
                 else {
                     KanJax.showErrorPopup(result);  
                 }
-            }});
+            }
+        });
 
         return false;
     },
@@ -205,7 +206,8 @@ KanJax = {
 
     // Utility to get all text nodes under a given element
     textNodesUnder : function(el, mark_links) {
-        var n, p, list=[], forbid, i, forbid_list = [], links, links_list = [], walker, doc, inlink;
+        var n, p, list=[], forbid, i, forbid_list = [],
+            links, links_list = [], walker, doc, inlink;
 
         doc = el.ownerDocument;
 
@@ -247,7 +249,7 @@ KanJax = {
 
     // Removes all links, and the text is again put in a text node
     removeLinks : function(el) {
-        var elsc, i, text, tN;
+        var els, i, text, tN;
 
         el = el || document.body;
 
@@ -259,8 +261,6 @@ KanJax = {
         els = [].slice.call(el.getElementsByClassName("kanjax"));
 
         for(i = 0; i<els.length; i++) {
-            if(els.length % 200 == 0)
-                console.log(els.length);
             text = els[i].textContent || els[i].innerText;
             if(els[i].previousSibling && els[i].previousSibling.nodeType == 3) {
                 text = els[i].previousSibling.data + text;
@@ -316,15 +316,11 @@ KanJax = {
     },
 
     findStringIn : function(a, b) {
-        var i = 0, j = 0, new_i, new_j;
-        var start_a = a.regexIndexOf(KanJax.JP_REG, 0);
-        //console.log("a: "+a+" ("+start_a+")");
-        var i = start_a;
+        var i, j, start_a, start_b, new_a, new_b;
+        i = start_a = a.regexIndexOf(KanJax.JP_REG, 0);
         if(i < 0)
             return [false, [0,0]];
-        var start_b = b.regexIndexOf(KanJax.JP_REG, 0);
-        //console.log("b: "+b+" ("+start_b+")");
-        var j = start_b, new_a, new_b;
+        j = start_b = b.regexIndexOf(KanJax.JP_REG, 0);
         if(j < 0)
             return [[i,i], false];
         while(true) {
@@ -348,7 +344,8 @@ KanJax = {
     },
 
     addGroupReading : function(group, reading) {
-        var i, j, text_to_add, text, is_simple_text, readtext, orig, node, el, el2;
+        var i, j, text_to_add, text, added_elements, 
+            is_simple_text, readtext, found, orig, node, el, el2;
         
         for(i = 0; i<group.length; ++i) {
             if(!group[i].parentNode) {
@@ -367,10 +364,10 @@ KanJax = {
         node = group[i];
 
         while(j < reading.length) {
-            var is_simple_text = (typeof(reading[j])=='string');
-            var readtext = is_simple_text ? reading[j] : reading[j][0];
+            is_simple_text = (typeof(reading[j])=='string');
+            readtext = is_simple_text ? reading[j] : reading[j][0];
 
-            var found = KanJax.findStringIn(text, readtext);
+            found = KanJax.findStringIn(text, readtext);
 
             //console.log("F with "+text+" ~~ "+readtext+" ~~ " 
             //    + found.toString() + " ~ "+is_simple_text);
@@ -485,8 +482,6 @@ KanJax = {
         currstr = '';
         currgr = [];
         while(state.i <= state.list.length) {
-            if(state.i > 400)
-                break;
             if(state.i < state.list.length) {
                 n = state.list[state.i];
                 p = n.parentNode;
@@ -551,7 +546,6 @@ KanJax = {
         });
     },
 
-    // Looks for all kanjis, and for each sets a link with a click function.
     addRubies : function(el, settings) {
         var el, list, status;
         el = el || document.body;
@@ -559,6 +553,54 @@ KanJax = {
         state = { list: list, i: 0, settings: settings };
         //console.log(state);
         KanJax.addRubiesStep(state);
+    },
+
+    removeRubies : function(el) {        
+        var els, coll, i, j, rb, ch, chn, text, tN;
+
+        el = el || document.body;
+
+        // make els an array, and NOT and HTMLCollection.
+        // If it is left as HTMLCollection and we iterate while not empty,
+        // it will trigger a slow behavior (bug?) in Chrome, and link
+        // removal is made very very slow (probably because the whole
+        // collection needs to be sorted at each step, or something).
+        coll = KanJax.useRubyElement ? el.getElementsByTagName("ruby") :
+                    el.getElementsByClassName("kanjax_ruby");
+        els = [].slice.call(coll);
+
+        for(i = 0; i<els.length; i++) {
+            if(KanJax.useRubyElement) {
+                rb = els[i].getElementsByTagName('RB');
+                if(rb.length == 0) {
+                    console.log('No RB child in RUBY?');
+                    continue;
+                }
+                ch = rb[0].childNodes;
+                for(j = 1; j < rb.length; j++)
+                    ch += rb[i].childNodes;
+            }
+            else {
+                ch = [];
+                chn = els[i].childNodes;
+                for(j = 0; j < chn.length; j++)
+                    if(chn[j].nodeType != 1 || chn[j].className != "kanjax_rt")
+                        ch.push(chn[j]);
+            }
+            if(ch[0].nodeType == 3 &&
+                els[i].previousSibling && els[i].previousSibling.nodeType == 3) {
+                ch[0].data = els[i].previousSibling.data + ch[0].data;
+                KanJax.remove(els[i].previousSibling);
+            }
+            if(ch[ch.length-1].nodeType == 3 &&
+                els[i].nextSibling && els[i].nextSibling.nodeType == 3) {
+                ch[ch.length-1].data = ch[ch.length-1].data + els[i].nextSibling.data;
+                KanJax.remove(els[i].nextSibling);
+            }
+            for(j = 0; j < ch.length; j++)
+                els[i].parentNode.insertBefore(ch[j], els[i]);
+            KanJax.remove(els[i]);
+        }
     },
 
     setup : function(doc) {
