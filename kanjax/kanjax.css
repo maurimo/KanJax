@@ -10,3 +10,10 @@ a .kanjax {
   color: #a000a0 !important;
   cursor: pointer;
 }
+.kjruby {
+    display: inline-block !important;
+}
+.kjrt {
+    display: block !important;
+    font-size: 70%;
+}
