@@ -518,7 +518,7 @@ KanJax = {
             state.i++;
         }
 
-        console.log(strings);
+        //console.log(strings);
         if(!strings.length) {
             if(state.settings && state.settings.success)
                 state.settings.success();
@@ -550,7 +550,7 @@ KanJax = {
         el = el || document.body;
         list = KanJax.textNodesUnder(el, false);
         state = { list: list, i: 0, settings: settings };
-        console.log(state);
+        //console.log(state);
         KanJax.addRubiesStep(state);
     },
 
