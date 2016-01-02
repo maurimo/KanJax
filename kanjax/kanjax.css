@@ -10,10 +10,14 @@ a .kanjax {
   color: #a000a0 !important;
   cursor: pointer;
 }
-.kjruby {
+.kanjax_ruby {
+    text-align: center !important;
     display: inline-block !important;
 }
-.kjrt {
+.kanjax_rt {
     display: block !important;
     font-size: 70%;
+    text-indent: 0px;
+    line-height: 0.9em;
 }
+rt, rp { font-size: 70%; }

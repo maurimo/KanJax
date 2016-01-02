@@ -71,8 +71,18 @@ function myAddLinks() {
     try {
         setError();
         KanJax.setup(iframe.contentDocument);
-        //KanJax.addLinks(iframe.contentDocument.body);
-        KanJax.addFurigana(iframe.contentDocument.body);
+        KanJax.addLinks(iframe.contentDocument.body);
+    } catch(e) {
+        setError(e);
+    }
+}
+
+function myAddRubies(settings) {
+    var iframe = document.getElementById("myiframe");
+    try {
+        setError();
+        KanJax.setup(iframe.contentDocument);
+        KanJax.addRubies(iframe.contentDocument.body, settings);
     } catch(e) {
         setError(e);
     }
@@ -86,6 +96,10 @@ function myRemoveLinks() {
     } catch(e) {
         setError(e);
     }
+}
+
+function myRemoveRubies() {
+    alert("unsupported (yet...!)");
 }
 
 myHistory = [];
@@ -120,9 +134,18 @@ function myFrameLoad() {
         back.disabled = false;
     }
 
-    var autoadd = document.getElementById("autoadd");
-    if(autoadd.checked)
-        myAddLinks();
+    var autoaddrubies = document.getElementById("autoaddrubies");
+    if(autoaddrubies.checked)
+        myAddRubies({ success: function() {
+            var autoadd = document.getElementById("autoadd");
+            if(autoadd.checked)
+                myAddLinks();
+        }});
+    else {
+        var autoadd = document.getElementById("autoadd");
+        if(autoadd.checked)
+            myAddLinks();
+    }
 }
 
 function myGo() {
@@ -151,12 +174,19 @@ function myBack() {
     <input id="address" style="width: 400" type="edit" />
     <input id="back" disabled="true" type="button" value="Back"
                               onclick="myBack();"/>
-    <input type="button" value="Go!" onclick="myGo();"/><br>
-    <input id="autoadd" checked="true" type="checkbox">Auto-add kanji info on load</input>
-    <input type="button" value="Add kanji info"
+    <input type="button" value="Go!" onclick="myGo();"/><br/>
+    <span style="font-size: 70%">
+    <input id="autoadd" checked="1" type="checkbox">Auto-add kanji info on load</input>
+    <input type="button" value="Add info"
                               onclick="myAddLinks();"/>
-    <input type="button" value="Remove kanji info"
-                              onclick="myRemoveLinks();"/>
+    <input type="button" value="Remove info"
+                              onclick="myRemoveLinks();"/><br/>
+    <input id="autoaddrubies" checked="1" type="checkbox">Auto-add rubies on load</input>
+    <input type="button" value="Add rubies"
+                              onclick="myAddRubies();"/>
+    <input type="button" value="Remove rubies"
+                              onclick="myRemoveRubies();"/>
+    </span>
 </td></tr></table>
     <div id="showerr"></div>
     

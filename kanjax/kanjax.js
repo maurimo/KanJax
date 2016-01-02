@@ -7,6 +7,18 @@ String.prototype.regexIndexOf = function(regex, startpos) {
 KanJax = {
     basePath: "kanjax/",
     
+    rubySkipGroupIf: function(node) {
+        return false;
+        if(['RB','RUBY'].indexOf(node.tagName) >= 0)
+            return true;
+        if(node.tagName == 'SPAN' && 
+            ['kanjax_ruby','kanjax_rt'].indexOf(node.className) >= 0)
+            return true;
+        return false;
+    },
+    
+    useRubyElement: true,
+    
     popupContent: "Couldn't load popup template.",
 
     popupCache: {
@@ -160,6 +172,9 @@ KanJax = {
     JP_REG:
         /[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uffef\u4e00-\u9faf\u3400-\u4dbf]/,
 
+    KANJI_REG:
+        /[\u4e00-\u9faf\u3400-\u4dbf]/,
+
     // Matches a string starting with a kanji
     START_REG:
         /^[\u4e00-\u9faf\u3400-\u4dbf]/,
@@ -181,7 +196,7 @@ KanJax = {
     },
 
     // Utility to get all text nodes under a given element
-    textNodesUnder : function(el) {
+    textNodesUnder : function(el, mark_links) {
         var n, p, list=[], forbid, i, forbid_list = [], links, links_list = [], walker, doc, inlink;
 
         doc = el.ownerDocument;
@@ -191,6 +206,16 @@ KanJax = {
             walker = doc.createTreeWalker(forbid[i], NodeFilter.SHOW_TEXT, null, false);
             while(n = walker.nextNode())
                 forbid_list.push(n);
+        }
+
+        if(!mark_links) {
+            walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+            while(n = walker.nextNode()) {
+                if(forbid_list.indexOf(n) >= 0)
+                    continue;
+                list.push(n);
+            }
+            return list;
         }
 
         links = el.getElementsByTagName("A");
@@ -247,7 +272,7 @@ KanJax = {
         var list, n, islink, parts, i, j, aN, tN, doc;
 
         el = el || document.body;
-        list = KanJax.textNodesUnder(el);
+        list = KanJax.textNodesUnder(el, true);
 
         for(i = 0; i<list.length; i++) {
             n = list[i][0];
@@ -317,6 +342,13 @@ KanJax = {
     addGroupReading : function(group, reading) {
         var i, j, text_to_add, text, is_simple_text, readtext, orig, node, el, el2;
         
+        for(i = 0; i<group.length; ++i) {
+            if(!group[i].parentNode) {
+                console.log("ELEMENT REMOVED!! bailing out...");
+                return;
+            }
+        }
+        
         i = 0;
         j = 0;
 
@@ -332,13 +364,14 @@ KanJax = {
 
             var found = KanJax.findStringIn(text, readtext);
 
-            console.log("F with "+text+" ~~ "+readtext+" ~~ " + found.toString() + " ~ "+is_simple_text);
+            //console.log("F with "+text+" ~~ "+readtext+" ~~ " 
+            //    + found.toString() + " ~ "+is_simple_text);
 
             // no japanese text, go to the next text node
             if(!found[0]) {
                 text_to_add += text;
                 if(text_to_add) {
-                    console.log("T1: " + text_to_add);
+                    //console.log("T1: " + text_to_add);
                     if(added_elements)
                         node = KanJax.appendText(text_to_add, node);
                     // else, the text was entirely skipped!
@@ -356,23 +389,19 @@ KanJax = {
             // no japanese text in the reading string, skip this reading
             if(!found[1]) {
                 j++;
-                console.log("NO JAP in the reading!");
+                //console.log("NO JAP in the reading!");
                 continue;
             }
 
-            //if(found[0][0] > 0)
-                //console.log('LSKIP: '+text.substr(0, found[0][0]));
-            //console.log('R1: '+text.substr(found[0][0], found[0][1]-found[0][0]));
-            //console.log('R2: '+readtext.substr(found[1][0], found[1][1]-found[1][0]));
             if(is_simple_text) {
                 text_to_add += text.substr(0, found[0][1]);
-                console.log("more text...: " + text_to_add);
+                //console.log("more text...: " + text_to_add);
             }
             else {
                 text_to_add += text.substr(0, found[0][0]);
                 var has_text_to_add = !!text_to_add;
                 if(has_text_to_add) {
-                    console.log("T2: " + text_to_add);
+                    //console.log("T2: " + text_to_add);
                     if(node == group[i]) added_beginning = true;
                     if(added_elements)
                         node = KanJax.appendText(text_to_add, node);
@@ -381,19 +410,31 @@ KanJax = {
                     text_to_add = '';
                 }
                 orig = text.substr(found[0][0], found[0][1]-found[0][0]);
-                console.log("R: " + orig + "["+reading[j][1]+"]");
+                //console.log("R: " + orig + "["+reading[j][1]+"]");
                 
                 var old_node = node;
                 doc = node.ownerDocument;
 
-                el2 = doc.createElement("span");
-                el2.className = "kjrt";
-                el2.appendChild(doc.createTextNode(reading[j][1]));
-                
-                el = doc.createElement("span");
-                el.className = "kjruby";
-                el.appendChild(el2);
-                el.appendChild(doc.createTextNode(orig));
+                if(KanJax.useRubyElement) {
+                    el = doc.createElement("ruby");
+                    el2 = doc.createElement("rb");
+                    el2.appendChild(doc.createTextNode(orig));
+                    el.appendChild(el2);
+
+                    el2 = doc.createElement("rt");
+                    el2.appendChild(doc.createTextNode(reading[j][1]));
+                    el.appendChild(el2);
+                }
+                else {
+                    el2 = doc.createElement("span");
+                    el2.className = "kanjax_rt";
+                    el2.appendChild(doc.createTextNode(reading[j][1]));
+                    
+                    el = doc.createElement("span");
+                    el.className = "kanjax_ruby";
+                    el.appendChild(el2);
+                    el.appendChild(doc.createTextNode(orig));
+                }
 
                 KanJax.insertAfter(node, el);
                 node = el;
@@ -414,69 +455,103 @@ KanJax = {
                 else
                     reading[j][0] = readtext.substr(0, found[1][1]);
                 reading.splice(j+1, 0, readtext.substr(found[1][1]));
-                console.log("NEW: "+reading);
+                //console.log("NEW: "+reading);
             }
             j++;
         }
         if(text_to_add) {
-            console.log("T3: "+text_to_add);
+            //console.log("T3: "+text_to_add);
             if(added_elements)
                 node = KanJax.appendText(text_to_add, node);
             // else, the text was entirely skipped!
         }
     },
     
-        // Looks for all kanjis, and for each sets a link with a click function.
-    addFurigana : function(el) {
-        var list, n, p, currp, groups;
-        el = el || document.body;
-        list = KanJax.textNodesUnder(el);
-        KanJax.list = list;
-
-        currp = undefined;
+    addRubiesStep : function(state) {
+        var n, text, p, currp, currstr, currgr, totstr, strings, groups, skipthis, skipgroup;
+        totstr = 0;
+        strings = [];
         groups = [];
-        for(i = 0; i<list.length; i++) {
-            n = list[i][0];
-            if(n.data.match(/^\s+$/))
-                continue;
-            p = list[i][0].parentNode;
-            while(["A","B","I","EM","SPAN","FONT","STRONG"].indexOf(p.tagName) >= 0)
-                p = p.parentNode;
-            if(currp != p) {
-                if(groups.length >= 90)
-                    break;
-                groups.push([]);
+        currp = null;
+        skipgroup = false;
+        currstr = '';
+        currgr = [];
+        while(state.i <= state.list.length) {
+            if(state.i > 400)
+                break;
+            if(state.i < state.list.length) {
+                n = state.list[state.i];
+                p = n.parentNode;
+                if(!p) {
+                    console.log("ELEMENT REMOVED!! bailing out...");
+                    return;
+                }
+                skipthis = false;
+                while(["A","B","I","EM","SPAN","FONT","STRONG","RUBY","RT","RB"].indexOf(p.tagName) >= 0) {
+                    if(!skipgroup && KanJax.rubySkipGroupIf(p))
+                        skipgroup = true;
+                    p = p.parentNode;
+                }
             }
-            groups[groups.length-1].push(n);
+            else
+                n = p = null;
+            //console.log(n.data);
+            if(currp && (currp != p)) {
+                currstr = currstr.trim().replace(/\s+/g,' ');
+                //console.log('adding...'+skipgroup+', '+currstr+', '+currstr.search(KanJax.KANJI_REG));
+                if(!skipgroup && currstr && (currstr.search(KanJax.KANJI_REG) >= 0)) {
+                    totstr += currstr.length+3;
+                    strings.push(currstr);
+                    groups.push(currgr);
+                    if(totstr > 800)
+                        break;
+                }
+                skipgroup = false;
+                currstr = '';
+                currgr = [];
+            }
+            if(state.i >= state.list.length)
+                break;
             currp = p;
+            currgr.push(n);
+            currstr += n.data;
+            state.i++;
         }
-        for(i = 3; i<4; i++) { //groups.length; i++) {
-        //for(i = 53; i<=53; i++) {
-            var g = groups[i];
-            var str = ""; // = String(i) + "(" + String(g.length) + "): ";
-            for(var j = 0; j < g.length; j++) {
-                //if(j > 0) str += "|";
-                str += g[j].data.trim();
-            }
 
-            (function(group,i) {
-            $.ajax({
-                url: encodeURI(KanJax.basePath + "reading.php?text=" + str),
-                success: function(result) {
-                    result = $.parseJSON(result);
-                    if(result.status == "OK") {
-                        console.log(i)
-                        console.log(result.data.toString());
-                        console.log(group);
-                        KanJax.addGroupReading(group, result.data);
-                    }
-                    else {
-                        KanJax.showErrorPopup(result);  
-                    }
-                }});
-            })(g,i);
-            //console.log(str);
+        console.log(strings);
+        if(!strings.length) {
+            if(state.settings && state.settings.success)
+                state.settings.success();
+            return;
         }
+
+        $.ajax({
+            type: "POST",
+            data: { text : strings },
+            url: encodeURI(KanJax.basePath + "reading.php"),
+            success: function(result) {
+                var i;
+                result = $.parseJSON(result);
+                if(result.status == "OK") {
+                    for(i = 0; i < groups.length; ++i)
+                        KanJax.addGroupReading(groups[i], result.data[i]);
+                    KanJax.addRubiesStep(state);
+                }
+                else {
+                    KanJax.showErrorPopup(result);  
+                }
+            }
+        });
+    },
+
+    // Looks for all kanjis, and for each sets a link with a click function.
+    addRubies : function(el, settings) {
+        var el, list, status;
+        el = el || document.body;
+        list = KanJax.textNodesUnder(el, false);
+        state = { list: list, i: 0, settings: settings };
+        console.log(state);
+        KanJax.addRubiesStep(state);
     },
 
     setup : function(doc) {
