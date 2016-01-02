@@ -7,6 +7,8 @@ String.prototype.regexIndexOf = function(regex, startpos) {
 KanJax = {
     basePath: "kanjax/",
     
+    loadStaticJSON: false,
+    
     rubySkipGroupIf: function(node) {
         return false;
         if(['RB','RUBY'].indexOf(node.tagName) >= 0)
@@ -78,22 +80,25 @@ KanJax = {
         div.innerHTML = content;
 
         // allow editing for fields having "editable" class, the innerHTML will be edited.
-        $("#kanjax_popup .editable").editable(
-            encodeURI(KanJax.basePath + "data.php?kanji=" + kanji),
-            {
-                id        : "key",
-                indicator : "<img style='height:1.15em' src='"+KanJax.basePath+"indicator.gif'>",
-                tooltip   : "Click to edit...",
-                style     : "display: inline; margin: 0px;",
-                callback  : function(value, settings) {
-                    var response = $.parseJSON(value);
-                    if(response.status == "OK") {
-                        if(kanji in KanJax.popupCache)
-                            KanJax.popupCache[kanji][response.key] = response.value;
-                        $(this).html(response.value);
-                    }
-                    else
-                        KanJax.showErrorPopup(response);
+        if(!KanJax.loadStaticJSON)
+            $("#kanjax_popup .editable").editable(
+                encodeURI(KanJax.basePath + "data.php?kanji=" + kanji),
+                {
+                    id        : "key",
+                    indicator : "<img style='height:1.15em' src='"+KanJax.basePath+"indicator.gif'>",
+                    tooltip   : "Click to edit...",
+                    style     : "display: inline; margin: 0px;",
+                    callback  : function(response, settings) {
+                        response = $.parseJSON(response);
+                        if(response.status == "OK") {
+                            if(kanji in KanJax.popupCache)
+                                KanJax.popupCache[kanji][response.key] = response.value;
+                            $(this).html(response.value);
+                        }
+                        else {
+                            KanJax.bPopup.close();
+                            KanJax.showErrorPopup(response);
+                        }
                 }
             });
         $(div).find('img').load(function() {
@@ -111,7 +116,7 @@ KanJax = {
         x = (document.body.clientWidth - $(div).width()) / 2;
         //console.log('base: '+x+', '+y);
         $(div).css({ display: 'none', visibility: 'visible' });
-        $(div).bPopup({ speed: 120, position: [x, y] });
+        KanJax.bPopup = $(div).bPopup({ speed: 120, position: [x, y] });
     },
 
     // show the popup, displaying an error message
@@ -135,7 +140,7 @@ KanJax = {
 
     // default click handler, uses jQuery + bPopup to show a nice popup
     activatePopup: function(e) {
-        var kanji, info, img, w;
+        var kanji, info, img, w, url;
 
         if((e.type == "mousedown") && e.which != 2)
             return true;
@@ -150,10 +155,13 @@ KanJax = {
         }
 
         // if not in cache, load via ajax
+        if(KanJax.loadStaticJSON)
+            url = encodeURI(KanJax.basePath + "json/" + kanji.charCodeAt(0) + ".json");
+        else
+            url = encodeURI(KanJax.basePath + "data.php?kanji=" + kanji)
         $.ajax({
-            url: encodeURI(KanJax.basePath + "data.php?kanji=" + kanji),
+            url: url,
             success: function(result){
-                result = $.parseJSON(result);
                 if(result.status == "OK") {
                     KanJax.popupCache[kanji] = result.data;
                     KanJax.showPopup(result.data, kanji);
@@ -531,7 +539,6 @@ KanJax = {
             url: encodeURI(KanJax.basePath + "reading.php"),
             success: function(result) {
                 var i;
-                result = $.parseJSON(result);
                 if(result.status == "OK") {
                     for(i = 0; i < groups.length; ++i)
                         KanJax.addGroupReading(groups[i], result.data[i]);

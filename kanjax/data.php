@@ -9,6 +9,8 @@ if($DEBUG) {
     ini_set('display_errors', 'On');
 }
 
+header('Content-type:application/json;charset=utf-8');
+
 if(empty($_GET["kanji"]))
     exit(json_encode(Array(
         "status" => "ERR_WRONG_QUERY",

@@ -50,7 +50,7 @@ SQL
 db.transaction
 File.open(ARGV[0]).each_line.each_with_index{ |l, i|
   fields = l.gsub(/\n$/,'').split("\t",-1).collect{ |f| unquote(f) }
-  kanji = fields[F_KANJI]
+  kanji = fields[F_KANJI][0]
   keyword = cleanup_html(fields[F_KEYWORD])
   meaning = cleanup_html(fields[F_MEANING])
   desc = cleanup_html(fields[F_DESC])

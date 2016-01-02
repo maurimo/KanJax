@@ -81,6 +81,8 @@ function process($text, $pipes) {
     return $retv;
 }
 
+header('Content-type:application/json;charset=utf-8');
+
 $text = $_POST["text"];
 //$text = array()
 //$text[] = "カリン、自分でまいた種は自分で刈り取[qw]";
@@ -90,4 +92,5 @@ foreach($text as $key => $v)
     $retv[] = process($v, $pipes);
 //print_r($retv);
 echo json_encode(array("status" => "OK", "data" => $retv));
+
 ?>
