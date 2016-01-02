@@ -382,7 +382,7 @@ KanJax = {
         }
     },
     
-    appendText(text, node) {
+    appendText: function(text, node) {
         var el = node.ownerDocument.createTextNode(text);
         KanJax.insertAfter(node, el);
         return el;
