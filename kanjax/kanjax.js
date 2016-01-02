@@ -4,10 +4,15 @@ String.prototype.regexIndexOf = function(regex, startpos) {
     return (indexOf >= 0) ? (indexOf + (startpos || 0)) : indexOf;
 }
 
+var KanJax;
 KanJax = {
     basePath: "kanjax/",
     
     loadStaticJSON: false,
+    
+    forcePopupPositionX: false,
+    
+    forcePopupPositionY: false,
     
     rubySkipGroupIf: function(node) {
         if(['RB','RUBY'].indexOf(node.tagName) >= 0)
@@ -124,19 +129,26 @@ KanJax = {
                 }
             });
 
-        $(div).find('img').load(function() {
-            var x,y;
-            y = document.body.scrollTop + (document.body.clientHeight - $(div).height()) / 2;
-            x = document.body.scrollLeft + (document.body.clientWidth - $(div).width()) / 2;
-            //console.log('new: '+x+', '+y);
-            $(div).css({left: x, top: y});
-        });
+        
+        if(!(typeof(KanJax.forcePopupPositionY)=='number')) {
+            $(div).find('img').load(function() {
+                var x,y;
+                y = document.body.scrollTop + (document.body.clientHeight - $(div).height()) / 2;
+                x = document.body.scrollLeft + (document.body.clientWidth - $(div).width()) / 2;
+                //console.log('new: '+x+', '+y);
+                $(div).css({left: x, top: y});
+            });
+        }
         $(div).css({
             position: "absolute", display: 'block', visibility: 'hidden',
             marginLeft: 0, marginTop: 0, top: 0, left: 0
         });
         y = (document.body.clientHeight - $(div).height()) / 2;
         x = (document.body.clientWidth - $(div).width()) / 2;
+        if(typeof(KanJax.forcePopupPositionX)=='number')
+            x = KanJax.forcePopupPositionX;
+        if(typeof(KanJax.forcePopupPositionY)=='number')
+            y = KanJax.forcePopupPositionY;
         //console.log('base: '+x+', '+y);
         $(div).css({ display: 'none', visibility: 'visible' });
         KanJax.bPopup = $(div).bPopup({ speed: 120, position: [x, y] });
@@ -156,6 +168,10 @@ KanJax = {
         });
         y = (document.body.clientHeight - $(div).height()) / 2;
         x = (document.body.clientWidth - $(div).width()) / 2;
+        if(typeof(KanJax.forcePopupPositionX)=='number')
+            x = KanJax.forcePopupPositionX;
+        if(typeof(KanJax.forcePopupPositionY)=='number')
+            y = KanJax.forcePopupPositionY;
         //console.log('base: '+x+', '+y);
         $(div).css({ position: "relative", display: 'none', visibility: 'visible' });
         $(div).bPopup({ speed: 120, position: [x, y] });
