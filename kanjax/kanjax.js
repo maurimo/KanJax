@@ -19,7 +19,7 @@ KanJax = {
         return false;
     },
     
-    useRubyElement: false,
+    useRubyElement: true,
     
     popupContent: "Couldn't load popup template.",
 
@@ -237,7 +237,7 @@ KanJax = {
 
         walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
         while(n = walker.nextNode()) {
-            if(n.parentNode.tagName == "A" && n.parentNode.className == "kanjax")
+            if(n.parentNode.tagName == "SPAN" && n.parentNode.className == "kanjax")
                 continue;
             if(forbid_list.indexOf(n) >= 0)
                 continue;
@@ -298,7 +298,7 @@ KanJax = {
                     KanJax.insertAfter(n, tN);
                 }
 
-                aN = doc.createElement("a");
+                aN = doc.createElement("SPAN");
                 aN.className = "kanjax";
                 if(!islink)
                     aN.onclick = KanJax.activatePopup;
