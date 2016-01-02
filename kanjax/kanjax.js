@@ -10,7 +10,6 @@ KanJax = {
     loadStaticJSON: false,
     
     rubySkipGroupIf: function(node) {
-        return false;
         if(['RB','RUBY'].indexOf(node.tagName) >= 0)
             return true;
         if(node.tagName == 'SPAN' && 
@@ -30,10 +29,32 @@ KanJax = {
     setupPopup: function() {
         var div, style;
 
-        // load the template
-        $.get(KanJax.basePath + "kanjax_popup_template.html", function(response) {
-            KanJax.popupContent = response;
-        })
+        // load the template, if loading local data just put here a static version
+        if(KanJax.loadStaticJSON) {
+            // set handler for inter-frame messages
+            window.addEventListener("message", function(event) {
+                event.target.removeEventListener(event.type, arguments.callee);
+                result = event.data;
+                if(result.status == "OK")
+                    KanJax.popupContent = result.data;
+                else
+                    KanJax.showErrorPopup(result);
+            }, false);
+
+            // create hidden iframe, that will later communicate and auto-remove
+            i = document.createElement('iframe');
+            i.style.display = 'none';
+            i.onload = function() {
+                i.parentNode.removeChild(i);
+            };
+            i.src = KanJax.basePath + "kanjax_popup_template.static.html";
+            document.body.appendChild(i);
+        }
+        else {
+            $.get(KanJax.basePath + "kanjax_popup_template.html", function(response) {
+                KanJax.popupContent = response;
+            });
+        }
 
         // load the css
         if(!document.getElementById('kanjax_style')) {
@@ -79,7 +100,8 @@ KanJax = {
             });
         div.innerHTML = content;
 
-        // allow editing for fields having "editable" class, the innerHTML will be edited.
+        // it not loading static local data, allow editing
+        // for fields having "editable" class, the innerHTML will be edited.
         if(!KanJax.loadStaticJSON)
             $("#kanjax_popup .editable").editable(
                 encodeURI(KanJax.basePath + "data.php?kanji=" + kanji),
@@ -101,6 +123,7 @@ KanJax = {
                         }
                 }
             });
+
         $(div).find('img').load(function() {
             var x,y;
             y = document.body.scrollTop + (document.body.clientHeight - $(div).height()) / 2;
@@ -140,7 +163,7 @@ KanJax = {
 
     // default click handler, uses jQuery + bPopup to show a nice popup
     activatePopup: function(e) {
-        var kanji, info, img, w, url;
+        var kanji, info, img, w, url, i;
 
         if((e.type == "mousedown") && e.which != 2)
             return true;
@@ -155,10 +178,33 @@ KanJax = {
         }
 
         // if not in cache, load via ajax
-        if(KanJax.loadStaticJSON)
-            url = encodeURI(KanJax.basePath + "json/" + kanji.charCodeAt(0) + ".json");
-        else
-            url = encodeURI(KanJax.basePath + "data.php?kanji=" + kanji)
+        if(KanJax.loadStaticJSON) {
+            url = encodeURI(KanJax.basePath + "static_data/" + kanji.charCodeAt(0) + ".html");
+            
+            // set handler for inter-frame messages
+            window.addEventListener("message", function(event) {
+                event.target.removeEventListener(event.type, arguments.callee);
+                result = event.data;
+                if(result.status == "OK") {
+                    KanJax.popupCache[kanji] = result.data;
+                    KanJax.showPopup(result.data, kanji);
+                }
+                else
+                    KanJax.showErrorPopup(result);
+            }, false);
+
+            // create hidden iframe, that will later communicate and auto-remove
+            i = document.createElement('iframe');
+            i.style.display = 'none';
+            i.onload = function() {
+                i.parentNode.removeChild(i);
+            };
+            i.src = url;
+            document.body.appendChild(i);
+            return;
+        }
+        
+        url = encodeURI(KanJax.basePath + "data.php?kanji=" + kanji)
         $.ajax({
             url: url,
             success: function(result){
@@ -166,9 +212,8 @@ KanJax = {
                     KanJax.popupCache[kanji] = result.data;
                     KanJax.showPopup(result.data, kanji);
                 }
-                else {
-                    KanJax.showErrorPopup(result);  
-                }
+                else
+                    KanJax.showErrorPopup(result);
             }
         });
 
@@ -576,7 +621,7 @@ KanJax = {
                     console.log('No RB child in RUBY?');
                     continue;
                 }
-                ch = rb[0].childNodes;
+                ch = [].slice.call(rb[0].childNodes);
                 for(j = 1; j < rb.length; j++)
                     ch += rb[i].childNodes;
             }
