@@ -57,6 +57,13 @@ body {
                               onclick="KanJax.addLinks(document.getElementById('forbidden'));"/>
     <input type="button" value="Remove kanji info in this div"
                               onclick="KanJax.removeLinks(document.getElementById('forbidden'));"/>
+    <div id="forbidden2" class="kanjax_forbidden" style="border: 1px solid darkgrey; margin: 0.5em">
+    Inner forbidden: 私は寿司が大好きです！
+    </div>
+  </div>
+  <div id="forbidden3" class="kanjax_forbidden container">
+    <h3>Forbidden div 2</h3>
+    友達は背が低いだ。
   </div>
   <div class="container">
     <h3>Another div</h3>
@@ -66,6 +73,8 @@ body {
   <div class="container">
     <h3>Links</h3>
     These are in links, and are activated via a central-click:<br>
+    <a id='xx' href="https://ja.wikipedia.org/wiki/%E9%A3%9F%E4%BA%8B">野菜、果物</a><br>
+    <a id='yy' href="https://ja.wikipedia.org/wiki/%E5%BB%BA%E7%89%A9">郵便局、図書館</a><br>
     <a href="http://jisho.org/search/%23words%20%E5%BF%83">心</a>
     <a href="http://jisho.org/search/%23words%20%E5%85%83%E6%B0%97">元気</a>
   </div>

@@ -254,12 +254,24 @@ var KanJax = {
         document.body.appendChild(i);
     },
 
+    activatePopupMiddle: function(e) {
+        if((e.type == "mousedown") && e.which != 2)
+            return true;
+        return KanJax.activatePopup(e);
+    },
+
+    activatePopupLeftOrMiddle: function(e) {
+        if((e.type == "mousedown") && e.which != 2 && e.which != 1)
+            return true;
+        return KanJax.activatePopup(e);
+    },
+        
     // default click handler, uses jQuery + bPopup to show a nice popup
     activatePopup: function(e) {
         var kanji, info, img, w, url, i, messageHandler;
 
-        if((e.type == "mousedown") && e.which != 2)
-            return true;
+        //if((e.type == "mousedown") && e.which != 2)
+        //    return true;
 
         e.preventDefault();
         kanji = e.currentTarget.textContent || e.currentTarget.innerText;
@@ -308,11 +320,14 @@ var KanJax = {
         return false;
     },
 
-    // Matches all starting chars that are not
-    // punctuaction (\u3000-\u303f), hiragana (\u3040-\u309f), katakana (\u30a0-\u30ff), 
-    // fw-roman and hw-katakana (\uff00-\uffef), kanji and ext kanji (\u4e00-\u9faf\u3400-\u4dbf)
+    // Matches all starting chars that are one of:
+    // * punctuaction (\u3000-\u303f) MINUS the 'IDEOGRAPHIC SPACE' \u3000,
+    // * hiragana (\u3040-\u309f),
+    // * katakana (\u30a0-\u30ff), 
+    // * fullwidth-roman and halfwidth-katakana (\uff00-\uffef),
+    // * kanji and kanji ext A (\u4e00-\u9faf\u3400-\u4dbf).
     JP_REG:
-        /[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uffef\u4e00-\u9faf\u3400-\u4dbf]/,
+        /[\u3001-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uffef\u4e00-\u9faf\u3400-\u4dbf]/,
 
     KANJI_REG:
         /[\u4e00-\u9faf\u3400-\u4dbf]/,
@@ -340,41 +355,62 @@ var KanJax = {
     // Utility to get all text nodes under a given element
     textNodesUnder : function(el, mark_links) {
         var n, p, list=[], forbid, i, forbid_list = [],
-            links, links_list = [], walker, doc, inlink;
+            links, links_list = [], walker, doc, inlink, inforbidden;
 
         doc = el.ownerDocument;
 
         forbid = el.getElementsByClassName("kanjax_forbidden");
         for(i = 0; i < forbid.length; ++i) {
+            // skip if this node is contained in the previous one, 
+            // so we will have a non-duplicated DOM-ordered list
+            if(i > 0 && (forbid[i].compareDocumentPosition(forbid[i-1]) & 8))
+                continue;
             walker = doc.createTreeWalker(forbid[i], NodeFilter.SHOW_TEXT, null, false);
-            while(n = walker.nextNode())
+            while(n = walker.nextNode()) {
+                //if(forbid_list.length && !(forbid_list[forbid_list.length-1].compareDocumentPosition(n) & 4))
+                //    console.log('Error, forbid_list is not ordered!');
                 forbid_list.push(n);
+            }
         }
 
+        // just return a list of non-forbidden text nodes
         if(!mark_links) {
             walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
             while(n = walker.nextNode()) {
-                if(forbid_list.indexOf(n) >= 0)
+                if(forbid_list[0] == n) {
+                    forbid_list.shift();
                     continue;
+                }
                 list.push(n);
             }
             return list;
         }
 
+        // get text nodes in a link. By W3C links cannot be nested,
+        // so no "is-contained" test is necessary
         links = el.getElementsByTagName("A");
         for(i = 0; i < links.length; ++i) {
             walker = doc.createTreeWalker(links[i], NodeFilter.SHOW_TEXT, null, false);
-            while(n = walker.nextNode())
+            while(n = walker.nextNode()) {
+                //if(links_list.length && !(links_list[links_list.length-1].compareDocumentPosition(n) & 4))
+                 //   console.log('Error, links_list is not ordered!');
                 links_list.push(n);
+            }
         }
 
         walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
         while(n = walker.nextNode()) {
+            inlink = false;
+            if(links_list.length && links_list[0] == n) {
+                links_list.shift();
+                inlink = true;
+            }
+            if(forbid_list[0] == n) {
+                forbid_list.shift();
+                continue;
+            }
             if(n.parentNode.tagName == "SPAN" && n.parentNode.className == "kanjax")
                 continue;
-            if(forbid_list.indexOf(n) >= 0)
-                continue;
-            inlink = !!(links_list.indexOf(n) >= 0);
             list.push([n, inlink]);
         }
         return list;
@@ -383,6 +419,8 @@ var KanJax = {
     // Removes all links, and the text is again put in a text node
     removeLinks : function(el) {
         var els, i, text, tN;
+        //var t1, t2;
+        //t1 = new Date().getTime();
 
         el = el || document.body;
 
@@ -392,28 +430,45 @@ var KanJax = {
         // removal is made very very slow (probably because the whole
         // collection needs to be sorted at each step, or something).
         els = [].slice.call(el.getElementsByClassName("kanjax"));
+        
+        //t3 = new Date().getTime();
+        //console.log('rm: '+(t3-t1));
 
         for(i = 0; i<els.length; i++) {
             text = els[i].textContent || els[i].innerText;
             if(els[i].previousSibling && els[i].previousSibling.nodeType == 3) {
-                text = els[i].previousSibling.data + text;
-                KanJax.remove(els[i].previousSibling);
+                if(els[i].nextSibling && els[i].nextSibling.nodeType == 3) {
+                    els[i].previousSibling.data = els[i].previousSibling.data + text + els[i].nextSibling.data;
+                    KanJax.remove(els[i].nextSibling);
+                }
+                else
+                    els[i].previousSibling.data = els[i].previousSibling.data + text;
+                KanJax.remove(els[i]);
             }
-            if(els[i].nextSibling && els[i].nextSibling.nodeType == 3) {
-                text = text + els[i].nextSibling.data;
-                KanJax.remove(els[i].nextSibling);
+            else if(els[i].nextSibling && els[i].nextSibling.nodeType == 3) {
+                els[i].nextSibling.data = text + els[i].nextSibling.data;
+                KanJax.remove(els[i]);
             }
-            tN = els[i].ownerDocument.createTextNode(text);
-            els[i].parentNode.replaceChild(tN, els[i]);
+            else {
+                tN = els[i].ownerDocument.createTextNode(text);
+                els[i].parentNode.replaceChild(tN, els[i]);
+            }
         }
+        //t2 = new Date().getTime();
+        //console.log('r2: '+(t2-t1));
     },
 
     // Looks for all kanjis, and for each sets a link with a click function.
     addLinks : function(el) {
         var list, n, islink, parts, i, j, aN, tN, doc;
+        //var t1, t2, t3;
+        //t1 = new Date().getTime();
 
         el = el || document.body;
         list = KanJax.textNodesUnder(el, true);
+
+        //t2 = new Date().getTime();
+        //console.log('t2: '+(t2-t1));
 
         for(i = 0; i<list.length; i++) {
             n = list[i][0];
@@ -422,7 +477,7 @@ var KanJax = {
             doc = n.ownerDocument;
             parts = n.data.split(KanJax.SPLIT_REG);
 
-            if(parts[0].match(KanJax.START_REG))
+            if(parts[0].search(KanJax.START_REG) >= 0)
                 parts.unshift('');
 
             for(j = parts.length-1; j >= 1; j--) {
@@ -433,9 +488,8 @@ var KanJax = {
 
                 aN = doc.createElement("SPAN");
                 aN.className = "kanjax";
-                if(!islink)
-                    aN.onclick = KanJax.activatePopup;
-                aN.onmousedown = KanJax.activatePopup;
+                //if(!islink) aN.onclick = KanJax.activatePopup;
+                aN.onmousedown = islink ? KanJax.activatePopupMiddle : KanJax.activatePopupLeftOrMiddle;
                 tN = doc.createTextNode(parts[j].slice(0,1));
                 aN.appendChild(tN);
                 KanJax.insertAfter(n, aN);
@@ -446,6 +500,9 @@ var KanJax = {
             else
                 KanJax.remove(n);
         }
+
+        //t3 = new Date().getTime();
+        //console.log('t3: '+(t3-t2));
     },
 
     findStringIn : function(a, b) {
