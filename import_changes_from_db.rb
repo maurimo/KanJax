@@ -57,7 +57,7 @@ File.open(ARGV[0]).each_line.each_with_index{ |l, ridx|
       end
     }
   end
-  o.puts newfields.collect{|f| quote(f)}.join("/t")
+  o.puts newfields.collect{|f| quote(f)}.join("\t")
 }
 }
 
