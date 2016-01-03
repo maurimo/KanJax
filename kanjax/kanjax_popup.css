@@ -1,6 +1,6 @@
 #kanjax_popup {
   width:     640px;
-  display:   none;
+  /*display:   none;*/
   background-color: #e0e0ff;
   border:    1px solid #8080ff;
   padding:   1.2em;

@@ -4,8 +4,7 @@ String.prototype.regexIndexOf = function(regex, startpos) {
     return (indexOf >= 0) ? (indexOf + (startpos || 0)) : indexOf;
 }
 
-var KanJax;
-KanJax = {
+var KanJax = {
     basePath: "kanjax/",
     
     loadStaticJSON: false,
@@ -29,35 +28,46 @@ KanJax = {
 
     popupCache: {
     },
+    
+    html: (function(){
+        var entityMap = { "&": "&amp;",  "<": "&lt;",  ">": "&gt;",
+                '"': '&quot;',  "'": '&#39;',  "/": '&#x2F;'  };
+
+        return function(string) {
+            return String(string).replace(/[&<>"'\/]/g, function (s) {
+            return entityMap[s];
+            });
+        }
+    })(),
+    
+    errorMessage: function(url, xhr) {
+        return 'Loading "'+KanJax.html(url)+'": <br/>'+
+            KanJax.html(xhr.status)+' ('+KanJax.html(xhr.statusText)+')';
+    },
 
     // inserts into the DOM what is necessary to show the default popup.
     setupPopup: function() {
-        var div, style;
+        var div, style, url;
 
         // load the template, if loading local data just put here a static version
-        if(KanJax.loadStaticJSON) {
-            // set handler for inter-frame messages
-            window.addEventListener("message", function(event) {
-                event.target.removeEventListener(event.type, arguments.callee);
-                result = event.data;
-                if(result.status == "OK")
-                    KanJax.popupContent = result.data;
-                else
-                    KanJax.showErrorPopup(result);
-            }, false);
-
-            // create hidden iframe, that will later communicate and auto-remove
-            i = document.createElement('iframe');
-            i.style.display = 'none';
-            i.onload = function() {
-                i.parentNode.removeChild(i);
-            };
-            i.src = KanJax.basePath + "kanjax_popup_template.static.html";
-            document.body.appendChild(i);
-        }
+        if(KanJax.loadStaticJSON)
+            KanJax.iframeRequest(
+                KanJax.basePath + "kanjax_popup_template.static.html",
+                function(result) {
+                    if(result.status == "OK")
+                        KanJax.popupContent = result.data;
+                    else
+                        KanJax.showErrorPopup(result);
+                });
         else {
-            $.get(KanJax.basePath + "kanjax_popup_template.html", function(response) {
-                KanJax.popupContent = response;
+            url = KanJax.basePath + "kanjax_popup_template.html";
+            $.get(url,
+                function(response) {
+                    KanJax.popupContent = response;
+            }).fail(function(xhr, msg) {
+                KanJax.showErrorPopup({ "status": "AJAX_ERROR",
+                    "message": KanJax.errorMessage(url, xhr)
+                });
             });
         }
 
@@ -76,6 +86,7 @@ KanJax = {
             div = document.createElement("div");
             div.id = "kanjax_popup";
             div.className = 'kanjax_forbidden';
+            div.style.display = 'none';
             document.body.appendChild(div);
         }
     },
@@ -91,7 +102,8 @@ KanJax = {
 
     // shows the popup
     showPopup: function(info, kanji) {
-        var div, k, content, x, y;
+        var div, k, content, x, y, url;
+        //console.log('showPop');
         div = document.getElementById("kanjax_popup");
         content = KanJax.popupContent.replace(
                 /\{\{(\w+)\}\}/g,
@@ -107,28 +119,33 @@ KanJax = {
 
         // it not loading static local data, allow editing
         // for fields having "editable" class, the innerHTML will be edited.
-        if(!KanJax.loadStaticJSON)
-            $("#kanjax_popup .editable").editable(
-                encodeURI(KanJax.basePath + "data.php?kanji=" + kanji),
-                {
-                    id        : "key",
-                    indicator : "<img style='height:1.15em' src='"+KanJax.basePath+"indicator.gif'>",
-                    tooltip   : "Click to edit...",
-                    style     : "display: inline; margin: 0px;",
-                    callback  : function(response, settings) {
-                        response = $.parseJSON(response);
-                        if(response.status == "OK") {
-                            if(kanji in KanJax.popupCache)
-                                KanJax.popupCache[kanji][response.key] = response.value;
-                            $(this).html(response.value);
-                        }
-                        else {
-                            KanJax.bPopup.close();
-                            KanJax.showErrorPopup(response);
-                        }
+        if(!KanJax.loadStaticJSON) {
+            url = encodeURI(KanJax.basePath + "data.php?kanji=" + kanji);
+            $("#kanjax_popup .editable").editable(url, {
+                id        : "key",
+                indicator : "<img style='height:1.15em' src='"+KanJax.basePath+"indicator.gif'>",
+                tooltip   : "Click to edit...",
+                style     : "display: inline; margin: 0px;",
+                callback  : function(response, settings) {
+                    response = $.parseJSON(response);
+                    if(response.status == "OK") {
+                        if(kanji in KanJax.popupCache)
+                            KanJax.popupCache[kanji][response.key] = response.value;
+                        $(this).html(response.value);
+                    }
+                    else {
+                        KanJax.bPopup.close();
+                        KanJax.showErrorPopup(response);
+                    }
+                },
+                onerror : function(req, el, xhr) {
+                    KanJax.bPopup.close();
+                    KanJax.showErrorPopup({ "status": "AJAX_ERROR",
+                        "message": KanJax.errorMessage(url, xhr)
+                    });
                 }
             });
-
+        }
         
         if(!(typeof(KanJax.forcePopupPositionY)=='number')) {
             $(div).find('img').load(function() {
@@ -143,20 +160,24 @@ KanJax = {
             position: "absolute", display: 'block', visibility: 'hidden',
             marginLeft: 0, marginTop: 0, top: 0, left: 0
         });
-        y = (document.body.clientHeight - $(div).height()) / 2;
-        x = (document.body.clientWidth - $(div).width()) / 2;
-        if(typeof(KanJax.forcePopupPositionX)=='number')
-            x = KanJax.forcePopupPositionX;
-        if(typeof(KanJax.forcePopupPositionY)=='number')
-            y = KanJax.forcePopupPositionY;
-        //console.log('base: '+x+', '+y);
-        $(div).css({ display: 'none', visibility: 'visible' });
-        KanJax.bPopup = $(div).bPopup({ speed: 120, position: [x, y] });
+        setTimeout(function(){
+            var x, y;
+            y = (document.body.clientHeight - $(div).height()) / 2;
+            x = (document.body.clientWidth - $(div).width()) / 2;
+            if(typeof(KanJax.forcePopupPositionX)=='number')
+                x = KanJax.forcePopupPositionX;
+            if(typeof(KanJax.forcePopupPositionY)=='number')
+                y = KanJax.forcePopupPositionY;
+            //console.log('base: '+x+', '+y);
+            $(div).css({ display: 'none', visibility: 'visible' });
+            KanJax.bPopup = $(div).bPopup({ speed: 120, position: [x, y] });
+        }, 10);
     },
 
     // show the popup, displaying an error message
     showErrorPopup: function(info) {
-        var div, k, content, x, y;
+        //console.log('showErr');
+        var div, content;
         div = document.getElementById("kanjax_popup");
         content = "<h2>Error!</h2>" + info.status;
         if(info.message)
@@ -166,20 +187,76 @@ KanJax = {
             position: "absolute", display: 'block', visibility: 'hidden',
             marginLeft: 0, marginTop: 0, top: 0, left: 0
         });
-        y = (document.body.clientHeight - $(div).height()) / 2;
-        x = (document.body.clientWidth - $(div).width()) / 2;
-        if(typeof(KanJax.forcePopupPositionX)=='number')
-            x = KanJax.forcePopupPositionX;
-        if(typeof(KanJax.forcePopupPositionY)=='number')
-            y = KanJax.forcePopupPositionY;
-        //console.log('base: '+x+', '+y);
-        $(div).css({ position: "relative", display: 'none', visibility: 'visible' });
-        $(div).bPopup({ speed: 120, position: [x, y] });
+        setTimeout(function(){
+            var x, y;
+            //console.log('esize: '+$(div).height()+', '+$(div).width())
+            y = (document.body.clientHeight - $(div).height()) / 2;
+            x = (document.body.clientWidth - $(div).width()) / 2;
+            if(typeof(KanJax.forcePopupPositionX)=='number')
+                x = KanJax.forcePopupPositionX;
+            if(typeof(KanJax.forcePopupPositionY)=='number')
+                y = KanJax.forcePopupPositionY;
+            //console.log('err: '+x+', '+y);
+            $(div).css({ display: 'none', visibility: 'visible' });
+            $(div).bPopup({ speed: 120, position: [x, y] });
+        }, 10);
+    },
+    
+    resetIframeRequest: function() {
+        if(KanJax.showErrorTimeout) { //async mess??
+            clearTimeout(KanJax.showErrorTimeout);
+            delete KanJax.showErrorTimeout;
+        }
+        if(KanJax.cleanupMessageListener)
+            KanJax.cleanupMessageListener();
+    },
+
+    iframeRequest: function(url, success) {
+        var messageHandler;
+        KanJax.resetIframeRequest();
+
+        // set handler for inter-frame messages
+        messageHandler = function(event) {
+            //event.target.removeEventListener(event.type, arguments.callee);
+            KanJax.resetIframeRequest();
+            success(event.data);
+        }
+        KanJax.cleanupMessageListener = (function(messageHandler){
+            return function() {
+                window.removeEventListener("message", messageHandler);
+                delete KanJax.cleanupMessageListener;
+            }
+        })(messageHandler);
+        window.addEventListener("message", messageHandler, false);
+
+        // create hidden iframe, that will later communicate and auto-remove
+        i = document.createElement('iframe');
+        i.style.display = 'none';
+
+        i.onload = (function(messageHandler, url) {
+            return function(e) {
+                i.parentNode.removeChild(i);
+                if(KanJax.showErrorTimeout) { //async mess??
+                    clearTimeout(KanJax.showErrorTimeout);
+                    delete KanJax.showErrorTimeout;
+                }
+                KanJax.showErrorTimeout = setTimeout(function(){
+                    if(KanJax.cleanupMessageListener) {
+                        KanJax.cleanupMessageListener();
+                        KanJax.showErrorPopup({"status":"IFRAME_ERROR",
+                            "message":"Couldn't load iframe '"+url+"'!"});
+                        delete KanJax.showErrorTimeout;
+                    }
+                }, 1000);
+            };
+        })(messageHandler, url);
+        i.src = url;
+        document.body.appendChild(i);
     },
 
     // default click handler, uses jQuery + bPopup to show a nice popup
     activatePopup: function(e) {
-        var kanji, info, img, w, url, i;
+        var kanji, info, img, w, url, i, messageHandler;
 
         if((e.type == "mousedown") && e.which != 2)
             return true;
@@ -189,49 +266,44 @@ KanJax = {
 
         // test cache
         if(kanji in KanJax.popupCache) {
+            if(KanJax.loadStaticJSON)
+                KanJax.resetIframeRequest();
             KanJax.showPopup(KanJax.popupCache[kanji], kanji);
             return false;
         }
 
         // if not in cache, load via ajax
-        if(KanJax.loadStaticJSON) {
-            url = encodeURI(KanJax.basePath + "static_data/" + kanji.charCodeAt(0) + ".html");
-            
-            // set handler for inter-frame messages
-            window.addEventListener("message", function(event) {
-                event.target.removeEventListener(event.type, arguments.callee);
-                result = event.data;
-                if(result.status == "OK") {
-                    KanJax.popupCache[kanji] = result.data;
-                    KanJax.showPopup(result.data, kanji);
+        if(KanJax.loadStaticJSON)
+            KanJax.iframeRequest(
+                encodeURI(KanJax.basePath + "static_data/" + kanji.charCodeAt(0) + ".html"),
+                function(result) {
+                    if(result.status == "OK") {
+                        KanJax.popupCache[kanji] = result.data;
+                        KanJax.showPopup(result.data, kanji);
+                    }
+                    else
+                        KanJax.showErrorPopup(result);
                 }
-                else
-                    KanJax.showErrorPopup(result);
-            }, false);
-
-            // create hidden iframe, that will later communicate and auto-remove
-            i = document.createElement('iframe');
-            i.style.display = 'none';
-            i.onload = function() {
-                i.parentNode.removeChild(i);
-            };
-            i.src = url;
-            document.body.appendChild(i);
-            return;
+            );
+        else {
+            url = encodeURI(KanJax.basePath + "data.php?kanji=" + kanji);
+            $.ajax({
+                url: url,
+                success: function(result) {
+                    if(result.status == "OK") {
+                        KanJax.popupCache[kanji] = result.data;
+                        KanJax.showPopup(result.data, kanji);
+                    }
+                    else
+                        KanJax.showErrorPopup(result);
+                },
+                error: function(xhr, msg) {
+                    KanJax.showErrorPopup({ "status": "AJAX_ERROR",
+                        "message": KanJax.errorMessage(url, xhr)
+                    });
+                }
+            });
         }
-        
-        url = encodeURI(KanJax.basePath + "data.php?kanji=" + kanji)
-        $.ajax({
-            url: url,
-            success: function(result){
-                if(result.status == "OK") {
-                    KanJax.popupCache[kanji] = result.data;
-                    KanJax.showPopup(result.data, kanji);
-                }
-                else
-                    KanJax.showErrorPopup(result);
-            }
-        });
 
         return false;
     },
@@ -534,7 +606,8 @@ KanJax = {
     },
     
     addRubiesStep : function(state) {
-        var n, text, p, currp, currstr, currgr, totstr, strings, groups, skipthis, skipgroup;
+        var n, text, p, currp, currstr, currgr, totstr,
+            strings, groups, skipthis, skipgroup, url;
         totstr = 0;
         strings = [];
         groups = [];
@@ -589,10 +662,11 @@ KanJax = {
             return;
         }
 
+        url = encodeURI(KanJax.basePath + "reading.php");
         $.ajax({
             type: "POST",
             data: { text : strings },
-            url: encodeURI(KanJax.basePath + "reading.php"),
+            url: url,
             success: function(result) {
                 var i;
                 if(result.status == "OK") {
@@ -603,6 +677,11 @@ KanJax = {
                 else {
                     KanJax.showErrorPopup(result);  
                 }
+            },
+            error: function(xhr, msg) {
+                KanJax.showErrorPopup({ "status": "AJAX_ERROR",
+                    "message": KanJax.errorMessage(url, xhr)
+                });
             }
         });
     },

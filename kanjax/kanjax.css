@@ -1,14 +1,14 @@
 .kanjax {
-  color: #c00000 !important;
-  padding: 0px !important;
-  border: none !important;
-  background-image: none !important;
-  display: inline !important;
-  cursor: pointer;
+    color: #c00000 !important;
+    padding: 0px !important;
+    border: none !important;
+    background-image: none !important;
+    display: inline !important;
+    cursor: pointer;
 }
 a .kanjax {
-  color: #a000a0 !important;
-  cursor: pointer;
+    color: #a000a0 !important;
+    cursor: pointer;
 }
 .kanjax_ruby {
     text-align: center !important;
