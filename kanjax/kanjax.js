@@ -24,6 +24,11 @@ var KanJax = {
     
     useRubyElement: true,
     
+    // while increasing this limit, keep in mind that each japanese char
+    // is expanded to about 9 ascii chars, so, the POST request must allow
+    // a request of size at least postJPCharsSoftLimit * 9.
+    postJPCharsSoftLimit: 5000,
+    
     popupContent: "Couldn't load popup template.",
 
     popupCache: {
@@ -665,6 +670,9 @@ var KanJax = {
     addRubiesStep : function(state) {
         var n, text, p, currp, currstr, currgr, totstr,
             strings, groups, skipthis, skipgroup, url;
+        //var t1, t2, t3;
+        //t1 = new Date().getTime();
+
         totstr = 0;
         strings = [];
         groups = [];
@@ -694,10 +702,10 @@ var KanJax = {
                 currstr = currstr.trim().replace(/\s+/g,' ');
                 //console.log('adding...'+skipgroup+', '+currstr+', '+currstr.search(KanJax.KANJI_REG));
                 if(!skipgroup && currstr && (currstr.search(KanJax.KANJI_REG) >= 0)) {
-                    totstr += currstr.length+3;
+                    totstr += currstr.length + 3;
                     strings.push(currstr);
                     groups.push(currgr);
-                    if(totstr > 800)
+                    if(totstr > KanJax.postJPCharsSoftLimit)
                         break;
                 }
                 skipgroup = false;
@@ -741,6 +749,9 @@ var KanJax = {
                 });
             }
         });
+
+        //t2 = new Date().getTime();
+        //console.log('step1: '+(t2-t1));
     },
 
     addRubies : function(el, settings) {
