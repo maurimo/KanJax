@@ -667,6 +667,10 @@ var KanJax = {
         }
     },
     
+    display: function(el) {
+        return el.currentStyle ? el.currentStyle.display : getComputedStyle(el, null).display;
+    },
+    
     addRubiesStep : function(state) {
         var n, text, p, currp, currstr, currgr, totstr,
             strings, groups, skipthis, skipgroup, url;
@@ -689,7 +693,8 @@ var KanJax = {
                     return;
                 }
                 skipthis = false;
-                while(["A","B","I","EM","SPAN","FONT","STRONG","RUBY","RT","RB"].indexOf(p.tagName) >= 0) {
+                //while(["A","B","I","EM","SPAN","FONT","STRONG","RUBY","RT","RB"].indexOf(p.tagName) >= 0) {
+                while(KanJax.display(p) == 'inline') {
                     if(!skipgroup && KanJax.rubySkipGroupIf(p))
                         skipgroup = true;
                     p = p.parentNode;
@@ -705,8 +710,10 @@ var KanJax = {
                     totstr += currstr.length + 3;
                     strings.push(currstr);
                     groups.push(currgr);
-                    if(totstr > KanJax.postJPCharsSoftLimit)
+                    if(totstr > KanJax.postJPCharsSoftLimit) {
+                        //console.log('totstr: '+totstr);
                         break;
+                    }
                 }
                 skipgroup = false;
                 currstr = '';
