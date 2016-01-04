@@ -4,6 +4,8 @@
 error_reporting(-1);
 ini_set('display_errors', 'On');
 
+require_once('settings.php');
+
 mb_internal_encoding("UTF-8");
 
 function kata_to_hira($str, $enc) {
@@ -17,22 +19,42 @@ function array_add_string(&$array, $val) {
         array_push($array, $val);
 }
 
+$mecab_args = array(
+    "--node-format=%m[%f[7]] ",
+    "--eos-format=\n",
+    "--unk-format=%m[] "
+);
+
+$cmd = MECAB_CMD;
+foreach($mecab_args as $arg)
+    $cmd .= ' ' . escapeshellarg($arg);
+
 $descriptorspec = array(
     0 => array("pipe", "r"),  // stdin is a pipe that the child will read from
     1 => array("pipe", "w"),  // stdout is a pipe that the child will write to
     2 => array("pipe", "w") // stderr is a file to write to
 );
-$process = proc_open('mecab "--node-format=%m[%f[7]] " "--eos-format=\n" "--unk-format=%m[] "',
-                      $descriptorspec, $pipes);
+
+$process = proc_open($cmd, $descriptorspec, $pipes);    
+
 if(!is_resource($process)) {
     echo "Error!\n";
     exit;
 }
 
-function process($text, $pipes) {
+function process($text, $pipes, $process) {
     fwrite($pipes[0], $text . "\n");
-    //echo fgets($pipes[1]);
-    $reply = preg_split('/\s+/u', fgets($pipes[1]), NULL, PREG_SPLIT_NO_EMPTY);
+    $response = fgets($pipes[1]);
+
+    // test if the program exited unexpectedly, if so somethings is wrong on the server side
+    $status = proc_get_status ( $process );
+    if(!$status['running'])
+        exit(json_encode(Array(
+            "status" => "SERVER_ERROR",
+            "message" => "Command exited unexpectedly: <br/>".htmlspecialchars($status['command'])
+        )));
+
+    $reply = preg_split('/\s+/u', $response, NULL, PREG_SPLIT_NO_EMPTY);
     $retv = array();
     foreach($reply as $token) {
         //echo 'T: '.$token."\n";
@@ -84,12 +106,14 @@ function process($text, $pipes) {
 header('Content-type:application/json;charset=utf-8');
 
 $text = $_POST["text"];
-//$text = array()
+//$text = array();
 //$text[] = "カリン、自分でまいた種は自分で刈り取[qw]";
 //$text[] = 'モーラ、モラ（mora）とは、音韻論上、一定の時間的長さをもった音の分節単位。古典詩における韻律用語であるラテン語のmŏra（モラ）の転用（日本語における「モーラ」という表記は英語からの音訳であり、「モラ」という表記はラテン語からの音訳）。拍（はく）と訳される。';
+
 $retv = array();
 foreach($text as $key => $v)
-    $retv[] = process($v, $pipes);
+    $retv[] = process($v, $pipes, $process);
+
 //print_r($retv);
 echo json_encode(array("status" => "OK", "data" => $retv));
 
