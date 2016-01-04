@@ -6,9 +6,9 @@ String.prototype.regexIndexOf = function(regex, startpos) {
 
 var KanJax = {
     basePath: "kanjax/",
-    
+
     loadStaticJSON: false,
-    
+
     forcePopupPositionX: false,
     
     forcePopupPositionY: false,
@@ -155,8 +155,8 @@ var KanJax = {
         if(!(typeof(KanJax.forcePopupPositionY)=='number')) {
             $(div).find('img').load(function() {
                 var x,y;
-                y = document.body.scrollTop + (document.body.clientHeight - $(div).height()) / 2;
-                x = document.body.scrollLeft + (document.body.clientWidth - $(div).width()) / 2;
+                y = document.body.scrollTop + (window.innerHeight - $(div).outerHeight()) / 2;
+                x = document.body.scrollLeft + (window.innerWidth - $(div).outerWidth()) / 2;
                 //console.log('new: '+x+', '+y);
                 $(div).css({left: x, top: y});
             });
@@ -167,8 +167,8 @@ var KanJax = {
         });
         setTimeout(function(){
             var x, y;
-            y = (document.body.clientHeight - $(div).height()) / 2;
-            x = (document.body.clientWidth - $(div).width()) / 2;
+            y = (window.innerHeight - $(div).outerHeight()) / 2;
+            x = (window.innerWidth - $(div).outerWidth()) / 2;
             if(typeof(KanJax.forcePopupPositionX)=='number')
                 x = KanJax.forcePopupPositionX;
             if(typeof(KanJax.forcePopupPositionY)=='number')
@@ -194,9 +194,8 @@ var KanJax = {
         });
         setTimeout(function(){
             var x, y;
-            //console.log('esize: '+$(div).height()+', '+$(div).width())
-            y = (document.body.clientHeight - $(div).height()) / 2;
-            x = (document.body.clientWidth - $(div).width()) / 2;
+            y = (window.innerHeight - $(div).outerHeight()) / 2;
+            x = (window.innerWidth - $(div).outerWidth()) / 2;
             if(typeof(KanJax.forcePopupPositionX)=='number')
                 x = KanJax.forcePopupPositionX;
             if(typeof(KanJax.forcePopupPositionY)=='number')

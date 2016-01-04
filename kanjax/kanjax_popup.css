@@ -1,10 +1,9 @@
 #kanjax_popup {
-  width:     640px;
-  /*display:   none;*/
+  width:         640px;
   background-color: #e0e0ff;
-  border:    1px solid #8080ff;
-  padding:   1.2em;
-  border-radius: 0.8em;
+  border:        1px solid #ffffff;
+  padding:       12px;
+  border-radius: 17px;
   text-align:    center;
 }
 #kanjax_popup div, #kanjax_popup span, #kanjax_popup td {
