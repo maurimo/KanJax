@@ -492,8 +492,11 @@ var KanJax = {
 
                 aN = doc.createElement("SPAN");
                 aN.className = "kanjax";
+                aN.dataset['kanji'] = parts[j].slice(0,1);
                 //if(!islink) aN.onclick = KanJax.activatePopup;
-                aN.onmousedown = islink ? KanJax.activatePopupMiddle : KanJax.activatePopupLeftOrMiddle;
+                aN.onmousedown = islink
+                    ? KanJax.activatePopupMiddle
+                    : KanJax.activatePopupLeftOrMiddle;
                 tN = doc.createTextNode(parts[j].slice(0,1));
                 aN.appendChild(tN);
                 KanJax.insertAfter(n, aN);
@@ -536,14 +539,38 @@ var KanJax = {
         KanJax.insertAfter(node, el);
         return el;
     },
+    
+    activateLemmaPopupMiddle: function(e) {
+        if((e.type == "mousedown") && e.which != 2)
+            return true;
+        return KanJax.activateLemmaPopup(e);
+    },
+
+    activateLemmaPopupLeftOrMiddle: function(e) {
+        if((e.type == "mousedown") && e.which != 2 && e.which != 1)
+            return true;
+        return KanJax.activateLemmaPopup(e);
+    },
+        
+    // default click handler, uses jQuery + bPopup to show a nice popup
+    activateLemmaPopup: function(e) {
+        var kanji, info, img, w, url, i, messageHandler;
+
+        //if((e.type == "mousedown") && e.which != 2)
+        //    return true;
+
+        e.preventDefault();
+        console.log(e.currentTarget);
+        //kanji = e.currentTarget.textContent || e.currentTarget.innerText;
+    },
 
     addGroupReading : function(group, reading) {
         var i, j, text_to_add, text, added_elements, has_text_to_add, 
-            is_simple_text, readtext, found, orig, node, el, el2, rj,
+            is_simple_text, readtext, found, orig, node, el, el2, rj, inlink,
             old_node, container, lnode, rinfo, rstring, rinfo_array, ctext;
         
         for(i = 0; i<group.length; ++i) {
-            if(!group[i].parentNode) {
+            if(!group[i][0].parentNode) {
                 console.log("ELEMENT REMOVED!! bailing out...");
                 return;
             }
@@ -555,8 +582,9 @@ var KanJax = {
         //text we skipped over, with no reading to add, to be added in the dom.
         text_to_add = '';
         added_elements = false;
-        text = group[i].data;
-        node = group[i];
+        node = group[i][0];
+        inlink = group[i][1];
+        text = node.data;
 
         while(j < reading.length) {
             rj = reading[j];
@@ -582,8 +610,9 @@ var KanJax = {
                 if(i >= group.length)
                     return;
                 added_elements = false;
-                text = group[i].data;
-                node = group[i];
+                node = group[i][0];
+                inlink = group[i][1];
+                text = node.data;
                 continue;
             }
 
@@ -603,7 +632,8 @@ var KanJax = {
                 has_text_to_add = !!text_to_add;
                 if(has_text_to_add) {
                     //console.log("T2: " + text_to_add);
-                    if(node == group[i]) added_beginning = true;
+                    if(node == group[i][0])
+                        added_beginning = true;
                     if(added_elements)
                         node = KanJax.appendText(text_to_add, node);
                     else
@@ -691,13 +721,10 @@ var KanJax = {
                         lnode.className += ' kanjax_lemma';
                     else
                         lnode.className = 'kanjax_lemma';
-                    /*el = doc.createElement("a");
-                    el.appendChild(doc.createTextNode(rj.l + ' ('+rj.p+')'));
-                    el.href = 'dio.org';
-                    el.className = 'mytooltip';
-                    lnode.appendChild(el);*/
-                    //lnode.dataset['qooltip'] = rj.l + ' ('+rj.p+')';
-                    //lnode.dataset['qooltip_position'] = "top";
+                    lnode.dataset['lemma'] = rj.l + ' ('+rj.p+')';
+                    lnode.onmousedown = inlink
+                        ? KanJax.activateLemmaPopupMiddle
+                        : KanJax.activateLemmaPopupLeftOrMiddle;
                 }
 
                 if(!has_text_to_add && !added_elements)
@@ -733,7 +760,7 @@ var KanJax = {
     },
     
     addRubiesStep : function(state) {
-        var n, text, p, currp, currstr, currgr, totstr,
+        var n, nl, text, p, currp, currstr, currgr, totstr,
             strings, groups, skipthis, skipgroup, url;
         //var t1, t2, t3;
         //t1 = new Date().getTime();
@@ -747,7 +774,8 @@ var KanJax = {
         currgr = [];
         while(state.i <= state.list.length) {
             if(state.i < state.list.length) {
-                n = state.list[state.i];
+                nl = state.list[state.i];
+                n = nl[0];
                 p = n.parentNode;
                 if(!p) {
                     console.log("ELEMENT REMOVED!! bailing out...");
@@ -783,7 +811,7 @@ var KanJax = {
             if(state.i >= state.list.length)
                 break;
             currp = p;
-            currgr.push(n);
+            currgr.push(nl);
             currstr += n.data;
             state.i++;
         }
@@ -827,7 +855,7 @@ var KanJax = {
     addRubies : function(el, settings) {
         var el, list, status;
         el = el || document.body;
-        list = KanJax.textNodesUnder(el, false);
+        list = KanJax.textNodesUnder(el, true);
         state = { list: list, i: 0, settings: settings };
         //console.log(state);
         KanJax.addRubiesStep(state);

@@ -36,7 +36,7 @@
   margin-top: 0.2em;
   margin-bottom: 0.2em;
 }
-#kanjax_popup .japanese {font-family: "Kochi Mincho";}
+#kanjax_popup .japanese { font-family: "Kochi Mincho"; }
 #kanjax_popup .small {font-size: 15px;}
 #kanjax_popup .medium {font-size: 19px;}
 #kanjax_popup .large {font-size: 24px;}
