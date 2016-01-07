@@ -538,9 +538,9 @@ var KanJax = {
     },
 
     addGroupReading : function(group, reading) {
-        var i, j, text_to_add, text, added_elements, 
+        var i, j, text_to_add, text, added_elements, has_text_to_add, 
             is_simple_text, readtext, found, orig, node, el, el2, rj,
-            old_node, container, lnode, rinfo, rstring;
+            old_node, container, lnode, rinfo, rstring, rinfo_array, ctext;
         
         for(i = 0; i<group.length; ++i) {
             if(!group[i].parentNode) {
@@ -600,7 +600,7 @@ var KanJax = {
             }
             else {
                 text_to_add += text.substr(0, found[0][0]);
-                var has_text_to_add = !!text_to_add;
+                has_text_to_add = !!text_to_add;
                 if(has_text_to_add) {
                     //console.log("T2: " + text_to_add);
                     if(node == group[i]) added_beginning = true;
@@ -611,42 +611,53 @@ var KanJax = {
                     text_to_add = '';
                 }
                 orig = text.substr(found[0][0], found[0][1]-found[0][0]);
-                console.log("R: " + orig);
-                console.log(reading[j]);
+                //console.log("R: " + orig);
+                //console.log(reading[j]);
 
                 old_node = node;
                 doc = node.ownerDocument;
 
                 rinfo = rj.r;
-                if(rinfo && rinfo.constructor.name == 'Array') {
+                rinfo_array = rinfo && (rinfo.constructor.name == 'Array');
+                if(rinfo_array) {
                     if(rinfo[2] > orig.length)
                         rinfo[2] = orig.length
                     if(rinfo[1] >= rinfo[2])
                         rinfo[1] = rinfo[2]-1;
-                    if(rinfo[1] == 0 && rinfo[2] == orig.length)
+                    if(rinfo[1] == 0 && rinfo[2] == orig.length) {
                         rinfo = rinfo[0];
+                        rinfo_array = false;
+                    }
                 }
-                if(!rinfo || rinfo.constructor.name == 'Array') {
-                    console.log('newcont');
+                if(!rinfo || rinfo_array) {
+                    //console.log('newcont');
                     container = doc.createElement("span");
-                    if(!rinfo)
+                    if(!rinfo) {
+                        //console.log("1< "+orig);
                         container.appendChild(doc.createTextNode(orig));
-                    else if(rinfo[1] > 0)
+                    }
+                    else if(rinfo[1] > 0) {
+                        //console.log("2< "+rinfo[1]);
                         container.appendChild(doc.createTextNode(orig.substr(0,rinfo[1])));
+                    }
                 }
 
-                rstring = rinfo && rinfo.constructor.name == 'Array' ? rinfo[0] : rinfo;
+                rstring = rinfo_array ? rinfo[0] : rinfo;
                 if(rstring) {
-                    console.log('ruby');
+                    ctext = rinfo_array ? orig.substr(rinfo[1], rinfo[2]-rinfo[1]) : orig;
+                    //console.log('ruby');
                     if(KanJax.useRubyElement) {
                         el = doc.createElement("ruby");
+
                         lnode = el2 = doc.createElement("rb");
-                        el2.appendChild(doc.createTextNode(orig));
+                        //console.log("3< "+ctext);
+                        el2.appendChild(doc.createTextNode(ctext));
                         el.appendChild(el2);
 
                         el2 = doc.createElement("rt");
                         el2.appendChild(doc.createTextNode(rstring));
                         el.appendChild(el2);
+
                     }
                     else {
                         el2 = doc.createElement("span");
@@ -656,14 +667,17 @@ var KanJax = {
                         lnode = el = doc.createElement("span");
                         el.className = "kanjax_ruby";
                         el.appendChild(el2);
-                        el.appendChild(doc.createTextNode(orig));
+                        el.appendChild(doc.createTextNode(ctext));
                     }
                 }
 
-                if(!rinfo || rinfo.constructor.name == 'Array') {
-                    container.appendChild(el);
-                    if(rinfo && rinfo[2] < orig.length)
-                        container.appendChild(doc.createTextNode(orig.substr(rinfo[1])));
+                if(!rinfo || rinfo_array) {
+                    if(rstring)
+                        container.appendChild(el);
+                    if(rinfo && rinfo[2] < orig.length) {
+                        //console.log("5< "+orig.substr(rinfo[2]));
+                        container.appendChild(doc.createTextNode(orig.substr(rinfo[2])));
+                    }
                     KanJax.insertAfter(node, container);
                     node = container;
                     lnode = container;
@@ -673,7 +687,17 @@ var KanJax = {
                     node = el;
                 }
                 if(rj.l) {
-                    lnode.className = 'kanjax_lemma';
+                    if(lnode.className)
+                        lnode.className += ' kanjax_lemma';
+                    else
+                        lnode.className = 'kanjax_lemma';
+                    /*el = doc.createElement("a");
+                    el.appendChild(doc.createTextNode(rj.l + ' ('+rj.p+')'));
+                    el.href = 'dio.org';
+                    el.className = 'mytooltip';
+                    lnode.appendChild(el);*/
+                    //lnode.dataset['qooltip'] = rj.l + ' ('+rj.p+')';
+                    //lnode.dataset['qooltip_position'] = "top";
                 }
 
                 if(!has_text_to_add && !added_elements)
@@ -779,6 +803,8 @@ var KanJax = {
             success: function(result) {
                 var i;
                 if(result.status == "OK") {
+                    console.log('Wall time: ' + result.wall_time);
+                    console.log('CPU time: ' + result.cpu_time);
                     for(i = 0; i < groups.length; ++i)
                         KanJax.addGroupReading(groups[i], result.data[i]);
                     KanJax.addRubiesStep(state);
