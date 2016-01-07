@@ -10,6 +10,9 @@ a .kanjax {
     color: #a000a0 !important;
     cursor: pointer;
 }
+.kanjax_lemma:hover {
+    background-color: white;    
+}
 .kanjax_ruby {
     text-align: center !important;
     display: inline-block !important;

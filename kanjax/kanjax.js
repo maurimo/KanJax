@@ -165,7 +165,7 @@ var KanJax = {
             position: "absolute", display: 'block', visibility: 'hidden',
             marginLeft: 0, marginTop: 0, top: 0, left: 0
         });
-        setTimeout(function(){
+        setTimeout(function() {
             var x, y;
             y = (window.innerHeight - $(div).outerHeight()) / 2;
             x = (window.innerWidth - $(div).outerWidth()) / 2;
@@ -539,7 +539,8 @@ var KanJax = {
 
     addGroupReading : function(group, reading) {
         var i, j, text_to_add, text, added_elements, 
-            is_simple_text, readtext, found, orig, node, el, el2;
+            is_simple_text, readtext, found, orig, node, el, el2, rj,
+            old_node, container, lnode, rinfo, rstring;
         
         for(i = 0; i<group.length; ++i) {
             if(!group[i].parentNode) {
@@ -558,8 +559,9 @@ var KanJax = {
         node = group[i];
 
         while(j < reading.length) {
-            is_simple_text = (typeof(reading[j])=='string');
-            readtext = is_simple_text ? reading[j] : reading[j][0];
+            rj = reading[j];
+            is_simple_text = (typeof(rj)=='string');
+            readtext = is_simple_text ? rj : rj.f;
 
             found = KanJax.findStringIn(text, readtext);
 
@@ -609,34 +611,70 @@ var KanJax = {
                     text_to_add = '';
                 }
                 orig = text.substr(found[0][0], found[0][1]-found[0][0]);
-                //console.log("R: " + orig + "["+reading[j][1]+"]");
-                
-                var old_node = node;
+                console.log("R: " + orig);
+                console.log(reading[j]);
+
+                old_node = node;
                 doc = node.ownerDocument;
 
-                if(KanJax.useRubyElement) {
-                    el = doc.createElement("ruby");
-                    el2 = doc.createElement("rb");
-                    el2.appendChild(doc.createTextNode(orig));
-                    el.appendChild(el2);
+                rinfo = rj.r;
+                if(rinfo && rinfo.constructor.name == 'Array') {
+                    if(rinfo[2] > orig.length)
+                        rinfo[2] = orig.length
+                    if(rinfo[1] >= rinfo[2])
+                        rinfo[1] = rinfo[2]-1;
+                    if(rinfo[1] == 0 && rinfo[2] == orig.length)
+                        rinfo = rinfo[0];
+                }
+                if(!rinfo || rinfo.constructor.name == 'Array') {
+                    console.log('newcont');
+                    container = doc.createElement("span");
+                    if(!rinfo)
+                        container.appendChild(doc.createTextNode(orig));
+                    else if(rinfo[1] > 0)
+                        container.appendChild(doc.createTextNode(orig.substr(0,rinfo[1])));
+                }
 
-                    el2 = doc.createElement("rt");
-                    el2.appendChild(doc.createTextNode(reading[j][1]));
-                    el.appendChild(el2);
+                rstring = rinfo && rinfo.constructor.name == 'Array' ? rinfo[0] : rinfo;
+                if(rstring) {
+                    console.log('ruby');
+                    if(KanJax.useRubyElement) {
+                        el = doc.createElement("ruby");
+                        lnode = el2 = doc.createElement("rb");
+                        el2.appendChild(doc.createTextNode(orig));
+                        el.appendChild(el2);
+
+                        el2 = doc.createElement("rt");
+                        el2.appendChild(doc.createTextNode(rstring));
+                        el.appendChild(el2);
+                    }
+                    else {
+                        el2 = doc.createElement("span");
+                        el2.className = "kanjax_rt";
+                        el2.appendChild(doc.createTextNode(rstring));
+                        
+                        lnode = el = doc.createElement("span");
+                        el.className = "kanjax_ruby";
+                        el.appendChild(el2);
+                        el.appendChild(doc.createTextNode(orig));
+                    }
+                }
+
+                if(!rinfo || rinfo.constructor.name == 'Array') {
+                    container.appendChild(el);
+                    if(rinfo && rinfo[2] < orig.length)
+                        container.appendChild(doc.createTextNode(orig.substr(rinfo[1])));
+                    KanJax.insertAfter(node, container);
+                    node = container;
+                    lnode = container;
                 }
                 else {
-                    el2 = doc.createElement("span");
-                    el2.className = "kanjax_rt";
-                    el2.appendChild(doc.createTextNode(reading[j][1]));
-                    
-                    el = doc.createElement("span");
-                    el.className = "kanjax_ruby";
-                    el.appendChild(el2);
-                    el.appendChild(doc.createTextNode(orig));
+                    KanJax.insertAfter(node, el);
+                    node = el;
                 }
-
-                KanJax.insertAfter(node, el);
-                node = el;
+                if(rj.l) {
+                    lnode.className = 'kanjax_lemma';
+                }
 
                 if(!has_text_to_add && !added_elements)
                     KanJax.remove(old_node);
