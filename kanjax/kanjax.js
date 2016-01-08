@@ -721,7 +721,8 @@ var KanJax = {
                         lnode.className += ' kanjax_lemma';
                     else
                         lnode.className = 'kanjax_lemma';
-                    lnode.dataset['lemma'] = rj.l + ' ('+rj.p+')';
+                    lnode.dataset['lemma'] = rj.l;
+                    lnode.dataset['pos'] = rj.p;
                     lnode.onmousedown = inlink
                         ? KanJax.activateLemmaPopupMiddle
                         : KanJax.activateLemmaPopupLeftOrMiddle;

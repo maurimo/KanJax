@@ -34,7 +34,7 @@ if(!empty($_POST["key"])) {
     }
     try {
         $statement = $db_handle->prepare(
-            'UPDATE KanjiIinfo SET '.$_POST["key"].' = :value WHERE kanji = :kanji;');
+            'UPDATE KanjiInfo SET '.$_POST["key"].' = :value WHERE kanji = :kanji;');
         $statement->bindValue(':value', $_POST["value"]);
         $statement->bindValue(':kanji', $_GET["kanji"]);
         $result = @$statement->execute();
@@ -62,7 +62,7 @@ try {
         "message" => $e->getMessage()
     )));
 }
-$statement = $db_handle->prepare('SELECT * FROM KanjiIinfo WHERE kanji = :kanji;');
+$statement = $db_handle->prepare('SELECT * FROM KanjiInfo WHERE kanji = :kanji;');
 $statement->bindValue(':kanji', $_GET["kanji"]);
 $result = $statement->execute();
 $row = $result->fetchArray(SQLITE3_ASSOC);

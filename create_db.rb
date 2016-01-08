@@ -5,12 +5,12 @@ require 'sqlite3'
 require 'nokogiri'
 
 F_KANJI=1
-F_KEYWORD=2
-F_MEANING=3
-F_DESC=4
-#F_KEYWORD=8
-#F_MEANING=7
-#F_DESC=16
+#F_KEYWORD=2
+#F_MEANING=3
+#F_DESC=4
+F_KEYWORD=8
+F_MEANING=7
+F_DESC=16
 F_STROKES=11
 F_ONYOMI=22
 F_KUNYOMI=23
@@ -35,7 +35,7 @@ db = SQLite3::Database.new ARGV[1]
 
 # Create a database
 rows = db.execute <<-SQL
-  CREATE TABLE KanjiIinfo (
+  CREATE TABLE KanjiInfo (
     kanji TEXT(1) PRIMARY KEY,
     keyword TEXT(32),
     meaning TEXT(128),
@@ -61,7 +61,7 @@ File.open(ARGV[0]).each_line.each_with_index{ |l, i|
     File.write("#{ARGV[3]}/#{strokes}", File.read("#{ARGV[2]}/#{strokes}"))
   end
   #desc = "Il RE della LOGICA\" è' il COMPUTER."
-  db.execute("INSERT INTO KanjiIinfo VALUES ( ?, ?, ?, ?, ?, ?, ? )", 
+  db.execute("INSERT INTO KanjiInfo VALUES ( ?, ?, ?, ?, ?, ?, ? )", 
              [kanji, keyword, meaning, desc, strokes, onyomi, kunyomi])
   if((i+1) % 500 == 0) then
     db.commit
@@ -72,6 +72,6 @@ File.open(ARGV[0]).each_line.each_with_index{ |l, i|
 db.commit
 
 # Find a few rows
-db.execute( "SELECT * FROM KanjiIinfo WHERE kanji = ?", '料') do |row|
+db.execute( "SELECT * FROM KanjiInfo WHERE kanji = ?", '料') do |row|
   p row
 end
