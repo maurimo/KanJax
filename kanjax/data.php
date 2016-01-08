@@ -9,28 +9,32 @@ if($DEBUG) {
     ini_set('display_errors', 'On');
 }
 
+function jexit($obj) {
+    exit(json_encode($obj, JSON_UNESCAPED_UNICODE));
+}
+
 header('Content-type:application/json;charset=utf-8');
 
 if(empty($_GET["kanji"]))
-    exit(json_encode(Array(
+    jexit(array(
         "status" => "ERR_WRONG_QUERY",
         "message" => "Variable \"kanji\" not set"
-    )));
+    ));
 
 if(!empty($_POST["key"])) {
     if(!preg_match("/^\w+$/",$_POST["key"]) and $_POST["key"] != "kanji")
-        exit(json_encode(Array(
+        jexit(array(
             "status" => "ERR_INVALID_KEY",
             "message" => "Invalid key \"".htmlspecialchars($_POST["key"])."\"."
-        )));
+        ));
 
     try {
         $db_handle  = new SQLite3($DATABASE, SQLITE3_OPEN_READWRITE);
     } catch (Exception $e) {
-        exit(json_encode(Array(
+        jexit(array(
             "status" => "ERR_CANT_WRITE_DB",
             "message" => $e->getMessage()
-        )));
+        ));
     }
     try {
         $statement = $db_handle->prepare(
@@ -39,42 +43,46 @@ if(!empty($_POST["key"])) {
         $statement->bindValue(':kanji', $_GET["kanji"]);
         $result = @$statement->execute();
         if($result)
-            exit(json_encode(Array(
+            jexit(array(
                 "status" => "OK",
                 "key" => $_POST["key"],
                 "value" => $_POST["value"]
-            )));
+            ));
         else
             throw new Exception("execute: " . $db_handle->lastErrorMsg());
     } catch (Exception $e) {
-        exit(json_encode(Array(
+        jexit(array(
             "status" => "ERR_CANT_WRITE_DB",
             "message" => $e->getMessage()
-        )));
+        ));
     }
 }
 
 try {
     $db_handle  = new SQLite3($DATABASE, SQLITE3_OPEN_READONLY);
 } catch (Exception $e) {
-    exit(json_encode(Array(
+    jexit(array(
         "status" => "ERR_CANT_READ_DB",
         "message" => $e->getMessage()
-    )));
+    ));
 }
 $statement = $db_handle->prepare('SELECT * FROM KanjiInfo WHERE kanji = :kanji;');
 $statement->bindValue(':kanji', $_GET["kanji"]);
 $result = $statement->execute();
 $row = $result->fetchArray(SQLITE3_ASSOC);
+$result->finalize();
+
 if(!$row)
-    exit(json_encode(Array(
+    jexit(array(
         "status" => "ERR_NOT_FOUND",
         "message" => "Key \"" . $_GET["kanji"] . "\" not found in DB."
-    )));
-$response = Array("status" => "OK", "data" => $row);
-echo json_encode($response);
+    ));
 
-$result->finalize();
-$db_handle->close();
+jexit(array(
+    "status" => "OK",
+    "data" => $row
+));
+
+//$db_handle->close();
 
 ?>

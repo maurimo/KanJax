@@ -74,6 +74,16 @@ var KanJax = {
                     "message": KanJax.errorMessage(url, xhr)
                 });
             });
+
+            url = KanJax.basePath + "dict_popup_template.html";
+            $.get(url,
+                function(response) {
+                    KanJax.dictPopupContent = response;
+            }).fail(function(xhr, msg) {
+                KanJax.showErrorPopup({ "status": "AJAX_ERROR",
+                    "message": KanJax.errorMessage(url, xhr)
+                });
+            });
         }
 
         // load the css
@@ -105,13 +115,37 @@ var KanJax = {
             KanJax.remove(el);
     },
 
+    makePopupVisible: function(div) {
+        $(div).find('img').load(function() {
+            var x,y;
+            y = document.body.scrollTop + (window.innerHeight - $(div).outerHeight()) / 2;
+            x = document.body.scrollLeft + (window.innerWidth - $(div).outerWidth()) / 2;
+            $(div).css({left: x, top: y});
+        });
+        $(div).css({
+            position: "absolute", display: 'block', visibility: 'hidden',
+            marginLeft: 0, marginTop: 0, top: 0, left: 0
+        });
+        setTimeout(function() {
+            var x, y;
+            y = (window.innerHeight - $(div).outerHeight()) / 2;
+            x = (window.innerWidth - $(div).outerWidth()) / 2;
+            if(typeof(KanJax.forcePopupPositionX)=='number')
+                x = KanJax.forcePopupPositionX;
+            if(typeof(KanJax.forcePopupPositionY)=='number')
+                y = KanJax.forcePopupPositionY;
+            $(div).css({ display: 'none', visibility: 'visible' });
+            KanJax.bPopup = $(div).bPopup({ speed: 120, position: [x, y] });
+        }, 10);        
+    },
+    
     // shows the popup
     showPopup: function(info, kanji) {
-        var div, k, content, x, y, url;
-        //console.log('showPop');
+        var div, content, url;
+
         div = document.getElementById("kanjax_popup");
         content = KanJax.popupContent.replace(
-                /\{\{(\w+)\}\}/g,
+            /\{\{(\w+)\}\}/g,
             function(match, key) {
                 if(key in info)
                     return info[key]
@@ -151,32 +185,9 @@ var KanJax = {
                 }
             });
         }
-        
-        if(!(typeof(KanJax.forcePopupPositionY)=='number')) {
-            $(div).find('img').load(function() {
-                var x,y;
-                y = document.body.scrollTop + (window.innerHeight - $(div).outerHeight()) / 2;
-                x = document.body.scrollLeft + (window.innerWidth - $(div).outerWidth()) / 2;
-                //console.log('new: '+x+', '+y);
-                $(div).css({left: x, top: y});
-            });
-        }
-        $(div).css({
-            position: "absolute", display: 'block', visibility: 'hidden',
-            marginLeft: 0, marginTop: 0, top: 0, left: 0
-        });
-        setTimeout(function() {
-            var x, y;
-            y = (window.innerHeight - $(div).outerHeight()) / 2;
-            x = (window.innerWidth - $(div).outerWidth()) / 2;
-            if(typeof(KanJax.forcePopupPositionX)=='number')
-                x = KanJax.forcePopupPositionX;
-            if(typeof(KanJax.forcePopupPositionY)=='number')
-                y = KanJax.forcePopupPositionY;
-            //console.log('base: '+x+', '+y);
-            $(div).css({ display: 'none', visibility: 'visible' });
-            KanJax.bPopup = $(div).bPopup({ speed: 120, position: [x, y] });
-        }, 10);
+
+        div.className = 'kanji_popup';
+        KanJax.makePopupVisible(div);
     },
 
     // show the popup, displaying an error message
@@ -188,22 +199,8 @@ var KanJax = {
         if(info.message)
             content += "<br/>" + info.message;
         div.innerHTML = content;
-        $(div).css({
-            position: "absolute", display: 'block', visibility: 'hidden',
-            marginLeft: 0, marginTop: 0, top: 0, left: 0
-        });
-        setTimeout(function(){
-            var x, y;
-            y = (window.innerHeight - $(div).outerHeight()) / 2;
-            x = (window.innerWidth - $(div).outerWidth()) / 2;
-            if(typeof(KanJax.forcePopupPositionX)=='number')
-                x = KanJax.forcePopupPositionX;
-            if(typeof(KanJax.forcePopupPositionY)=='number')
-                y = KanJax.forcePopupPositionY;
-            //console.log('err: '+x+', '+y);
-            $(div).css({ display: 'none', visibility: 'visible' });
-            $(div).bPopup({ speed: 120, position: [x, y] });
-        }, 10);
+        div.className = 'error_popup';
+        KanJax.makePopupVisible(div);
     },
     
     resetIframeRequest: function() {
@@ -274,10 +271,8 @@ var KanJax = {
     activatePopup: function(e) {
         var kanji, info, img, w, url, i, messageHandler;
 
-        //if((e.type == "mousedown") && e.which != 2)
-        //    return true;
-
         e.preventDefault();
+        e.stopPropagation();
         kanji = e.currentTarget.textContent || e.currentTarget.innerText;
 
         // test cache
@@ -540,6 +535,70 @@ var KanJax = {
         return el;
     },
     
+    //KanJax.expandTemplate('{{%foo}} {{bar}} {{/foo}}',
+    //    {'foo':[{'bar':'a'},{'bar':'b'}]})
+    expandTemplate: function(template, obj) {
+        var content = template.replace(
+            /\{\{%(\w+)\}\}([\s\S]*)\{\{\/\1\}\}/g,
+            function(match, key, inner) {
+                var array, i, retv, item;
+                if(!key in obj)
+                    return "{unknown field "+key+"}";
+                array = obj[key];
+                if(!array)
+                    return '';
+                if(array.constructor != Array)
+                    return "{field "+key+" is not an array!}";
+                retv = '';
+                for(i = 0; i < array.length; i++) {
+                    item = array[i];
+                    if(typeof(item)!='object')
+                        item = {'THIS': item};
+                    if(i!=0)
+                        item.NOT_FIRST = true;
+                    else
+                        item.FIRST = true;
+                    if(i!=array.length-1)
+                        item.NOT_LAST = true;
+                    else
+                        item.LAST = true;
+                    retv += KanJax.expandTemplate(inner, item);
+                }
+                return retv;
+            });
+        content = content.replace(
+            /\{\{#(\w+)\}\}([\s\S]*)\{\{\/\1\}\}/g,
+            function(match, key, inner) {
+                return (key in obj) ? inner : '';
+            });
+        return content.replace(
+            /\{\{(\w+)(?:\:(\w+))?\}\}/g,
+            function(match, key, flags) {
+                var val;
+                if(key == 'KANJAX_BASEPATH')
+                    return KanJax.basePath;
+                if(!(key in obj))
+                    return "{unknown field "+key+"}";
+                val = obj[key];
+                if(flags == 'furigana')
+                    val = val.replace(/\[(\S+)\|(\S+)\]/g, function(m,k,r) {
+                        return '<ruby><rb>'+k+'</rb><rt>'+r+'</rt></ruby>';
+                    });
+                return val;
+            });
+    },
+
+    showLemmaPopup: function(info) {
+        var div, exp;
+
+        div = document.getElementById("kanjax_popup");
+        exp = KanJax.expandTemplate(KanJax.dictPopupContent, {entries: info});
+        console.log(exp);
+        div.innerHTML = exp;
+        div.className = 'dict_popup';
+        KanJax.makePopupVisible(div);
+    },
+    
     activateLemmaPopupMiddle: function(e) {
         if((e.type == "mousedown") && e.which != 2)
             return true;
@@ -551,17 +610,33 @@ var KanJax = {
             return true;
         return KanJax.activateLemmaPopup(e);
     },
-        
+
     // default click handler, uses jQuery + bPopup to show a nice popup
     activateLemmaPopup: function(e) {
         var kanji, info, img, w, url, i, messageHandler;
 
-        //if((e.type == "mousedown") && e.which != 2)
-        //    return true;
-
         e.preventDefault();
-        console.log(e.currentTarget);
-        //kanji = e.currentTarget.textContent || e.currentTarget.innerText;
+        e.stopPropagation();
+        word = e.currentTarget.dataset['lemma'];
+        console.log(e.currentTarget.dataset['lemma']);
+
+        $.ajax({
+            url: KanJax.basePath + 'dict.php',
+            data: { word: word },
+            success: function(result) {
+                if(result.status == "OK") {
+                    KanJax.popupCache[kanji] = result.data;
+                    KanJax.showLemmaPopup(result.data);
+                }
+                else
+                    KanJax.showErrorPopup(result);
+            },
+            error: function(xhr, msg) {
+                KanJax.showErrorPopup({ "status": "AJAX_ERROR",
+                    "message": KanJax.errorMessage(url, xhr)
+                });
+            }
+        });
     },
 
     addGroupReading : function(group, reading) {

@@ -38,7 +38,7 @@ nchanged=0
 File.open(ARGV[2],'w'){ |o|
 File.open(ARGV[0]).each_line.each_with_index{ |l, ridx|
   fields = l.gsub(/\n$/,'').split("\t",-1).collect{ |f| unquote(f) }
-  rows = db.execute( "SELECT * FROM KanjiIinfo WHERE kanji = ?", fields[F_KANJI])
+  rows = db.execute( "SELECT * FROM KanjiInfo WHERE kanji = ?", fields[F_KANJI])
   newfields = fields.dup
   unless rows.empty? then
     row = rows[0]

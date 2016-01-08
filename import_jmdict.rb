@@ -4,6 +4,8 @@
 require 'sqlite3'
 require 'libxml'
 require 'json'
+require 'mojinizer'
+require 'set'
 
 def ptor(kj,read)
     l = 0
@@ -14,37 +16,90 @@ def ptor(kj,read)
     r = 0
     m -= l
     while r < m and kj[-r-1] == read[-r-1]
-        r -= 1
+        r += 1
     end
     (l>0 ? read[0..(l-1)] : '') +
-    "{#{kj[l..(-r-1)]}}[#{read[l..(-r-1)]}]" +
+    "[#{kj[l..(-r-1)]}|#{read[l..(-r-1)]}]" +
     (r > 0 ? read[(-r)..-1] : '')
 end
+#puts ptor('も物寂しい','もものさびしい'); exit
+
+def xref(w)
+    w.sub!(/・\d+$/,'')
+    ws = w.split('・', -1)
+    if ws.length != 2 or
+        not ws[0].japanese? or
+        not ws[1].japanese? or
+        not ws[0].gsub(/[ー]/,'').contains_moji_type?(Moji::KANJI|
+                        Moji::ZEN_ALNUM|Moji::ZEN_SYMBOL) or
+        ws[1].contains_kanji? then
+        #puts "XREF: "+w
+        return w
+    end
+    ptor(ws[0], ws[1])
+end
+
+HPRI=Set['ichi1','news1','spec1','gai1']
 
 def process(el)
     id = el.find('./ent_seq')[0].content
-    kebs = el.find('./k_ele/keb').collect{|x| x.content}
+    #puts id
+    #puts el.to_s
+    kebs = []
+    hkebs = []
+    el.find('./k_ele').each{ |k_ele|
+        keb = k_ele.find('./keb')[0].content
+        kebs.push(keb)
+        pris = el.find('./ke_pri').collect{ |pri| pri.content }
+        hkebs.push(keb) unless (HPRI & pris).empty?
+    }
     rebs = []
+    hrebs = []
     wrrd = []
     el.find('./r_ele').each{ |r_ele|
         reb = r_ele.find('./reb')[0].content
         rebs.push(reb)
+
+        pris = el.find('./re_pri').collect{ |pri| pri.content }
+        hrebs.push(reb) unless (HPRI & pris).empty?
+
         kwritings = r_ele.find('./re_restr').collect{|x| x.content}
         i = reb
         kwritings = kwritings.empty? ? kebs :  kwritings
         if kwritings.empty? then
             wrrd.push(i)
         else
-            wrrd += kwritings.collect{|k| ptor(k,i) }
+            wrrd += kwritings.collect{|k| [k,i] }
         end
     }
+    if kebs.empty? then
+        mainform = hrebs.empty? ? rebs[0] : hrebs[1]
+    else
+        #puts wrrd.inspect
+        candidates = wrrd
+        if !hkebs.empty? then
+            tmp = candidates.select{|k,r| hkebs.member?(k) }
+            candidates = tmp unless tmp.empty?
+        end
+        if !hrebs.empty? then
+            tmp = candidates.select{|k,r| hrebs.member?(r) }
+            candidates = tmp unless tmp.empty?
+        end
+        mainform = ptor(candidates[0][0], candidates[0][1])
+    end
+    wrrd = wrrd.collect{|x|
+        x.class == Array ? ptor(x[0], x[1]) : x
+    }
+    othf = wrrd.select{ |x| x != mainform }
+    iscommon = (not hkebs.empty?) or (not hrebs.empty?)
+
     senses = []
     el.find('./sense').each{ |sense|
         pos = sense.find('./pos').collect{|x| x.content}.join(', ')
         gloss = sense.find('./gloss').collect{|x| x.content}.join('; ')
         misc = (sense.find('./misc').collect{|x| x.content} + 
                 sense.find('./s_inf').collect{|x| x.content}).join(', ')
-        refs = sense.find('./xref').collect{|x| x.content}.join(', ')
+        refs = sense.find('./xref').collect{|x| xref(x.content) }.join(', ')
         sense = { :gloss => gloss }
         sense[:pos] = pos unless pos.empty?
         sense[:misc] = misc unless misc.empty?
@@ -54,19 +109,23 @@ def process(el)
 
     if false then
         puts 'id............: '+id
+        puts 'mainform......: '+mainform
         puts 'kanji forms...: '+kebs.inspect
         puts 'kana forms....: '+rebs.inspect
         puts 'write/readings: '+wrrd.inspect
         puts 'senses........: '+senses.inspect
     end
 
-    return {
+    retv = {
         :id => id,
+        :main => mainform,
+        :cm => iscommon ? 1 : 0,
         :kebs => kebs,
         :rebs => rebs,
-        :wrrd => wrrd,
         :senses => senses
     }
+    retv[:othf] = othf unless othf.empty?
+    return retv
 end
 
 
@@ -104,7 +163,7 @@ i = 0
 db.transaction
 doc.find('//entry').each {|el|
     entry = process(el)
-    
+
     db.execute("INSERT INTO Entries VALUES (?, ?)", 
                 [entry[:id], JSON.generate(entry)])
     words = entry[:kebs] + entry[:rebs]

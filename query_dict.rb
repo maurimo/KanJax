@@ -8,7 +8,6 @@ db = SQLite3::Database.new(ARGV[0],
                            :readonly => true,
                            :results_as_hash => true)
 
-db.execute( "SELECT * FROM KanjiInfo WHERE kanji = ?", ARGV[1]) do |row|
-    row.reject!{|k| k.class == Fixnum }
-    puts row.inspect
+db.execute( "SELECT entry FROM Entries INNER JOIN Words on Words.id=Entries.id WHERE word = ?", ARGV[1]) do |row|
+    puts row['entry'].inspect
 end
