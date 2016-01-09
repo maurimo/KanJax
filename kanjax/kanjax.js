@@ -977,11 +977,13 @@ var KanJax = {
 
                 if(result.status == "OK") {
                     if(KanJax.profile) {
+                        state.profiling.PHP_WALL += result.wall_time;
+                        state.profiling.PHP_CPU += result.cpu_time;                        
                         console.log('[php '+state.step+'] Wall time: ' + result.wall_time);
                         console.log('[php '+state.step+'] CPU time: ' + result.cpu_time);
                     }
 
-                    for(i = 0; i < groups.length; ++i)
+                    for(i = 0; i < 0*groups.length; ++i)
                         KanJax.addGroupReading(groups[i],
                                                result.data[i],
                                                state.settings.kanji_info);
@@ -1018,7 +1020,9 @@ var KanJax = {
                 TEXT_LIST: 0,
                 REQ_WAIT: 0,
                 REQ_PREP: 0,
-                DOM_EDIT: 0
+                DOM_EDIT: 0,
+                PHP_CPU: 0,
+                PHP_WALL: 0
             };
             t1 = new Date().getTime();
         }

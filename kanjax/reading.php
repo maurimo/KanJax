@@ -30,6 +30,14 @@ function array_add_string(&$array, $val) {
         array_push($array, $val);
 }
 
+function u32ch($str, $len) {
+    return substr($str, $len * 4, 4);
+}
+
+function is_one_of($x, $a, $b) {
+    return ($x == $a) or ($x == $b);
+}
+
 class Processor {
     const Readings = 1;
     const Lemmas = 2;
@@ -111,9 +119,10 @@ class Processor {
 
     function get_response() {
         $response = fgets($this->pipes[1]);
-       //echo "$response\n";
+        //echo "$response\n";
 
-        // test if the program exited unexpectedly, if so somethings is wrong on the server side
+        // test if the program exited unexpectedly, 
+        // if so somethings is wrong on the server side
         $status = proc_get_status ( $this->process );
         if(!$status['running'])
             jexit(Array(
@@ -175,21 +184,20 @@ class Processor {
             $l = mb_strlen($form32, 'UTF-32');
             $rl = mb_strlen($rkata32, 'UTF-32');
             while($leq < $l && $leq < $rl &&
-                (mb_substr($form32, $leq, 1, 'UTF-32') == 
-                        mb_substr($rkata32, $leq, 1, 'UTF-32') 
-                || mb_substr($form32, $leq, 1, 'UTF-32') == 
-                        mb_substr($rhira32, $leq, 1, 'UTF-32')) )
+                is_one_of(u32ch($form32, $leq),
+                    u32ch($rkata32, $leq),
+                    u32ch($rhira32, $leq)) )
                 $leq++;
             while($req < $l-$leq && $req < $rl - $leq &&
-                (mb_substr($form32, $l-1-$req, 1, 'UTF-32') == 
-                        mb_substr($rkata32, $rl-1-$req, 1, 'UTF-32')
-                || mb_substr($form32, $l-1-$req, 1, 'UTF-32') == 
-                        mb_substr($rhira32, $rl-1-$req, 1, 'UTF-32')) )
+                is_one_of(u32ch($form32, $l-1-$req),
+                    u32ch($rkata32, $rl-1-$req),
+                    u32ch($rhira32, $rl-1-$req)) )
                 $req++;
 
             if($req + $leq < $rl)
-                $reading8 = mb_convert_encoding(mb_substr($rhira32, $leq, 
-                                $rl-$req-$leq, 'UTF-32'), 'UTF-8', 'UTF-32');
+                $reading8 = mb_convert_encoding( ($leq == 0 and $req == 0) 
+                    ? $rhira32 : mb_substr($rhira32, $leq, $rl-$req-$leq, 'UTF-32'),
+                    'UTF-8', 'UTF-32');
 
             if( ($this->settings & self::Lemmas) and
                     !array_key_exists($pos8, $this->ForbiddenPos) ) {
@@ -217,15 +225,16 @@ class Processor {
                 array_add_string($retv, $left8);
             }
             if($leq + $req < $l) {
-                $middle8 = mb_convert_encoding(mb_substr($form32, $leq, $l-$req-$leq, 'UTF-32'),
-                                                                            'UTF-8', 'UTF-32');
+                $middle8 = ($leq == 0 and $req == 0) ? $form8 :
+                    mb_convert_encoding(mb_substr($form32, $leq,
+                                        $l-$req-$leq, 'UTF-32'), 'UTF-8', 'UTF-32');
                 if($req + $leq >= $rl)
                     array_add_string($retv, $middle8);
                 else
                     array_push($retv, array(
-                    'f' => $middle8,
-                    'r' => $reading8
-                ));
+                        'f' => $middle8,
+                        'r' => $reading8
+                    ));
             }
             if($req > 0) {
                 $right8 = mb_convert_encoding(mb_substr($form32, $l-$req, $l, 'UTF-32'),
@@ -245,14 +254,24 @@ $text = $_POST["text"];
 //$text[] = 'モーラ、モラ（mora）とは、音韻論上、一定の時間的長さをもった音の分節単位。古典詩における韻律用語であるラテン語のmŏra（モラ）の転用（日本語における「モーラ」という表記は英語からの音訳であり、「モラ」という表記はラテン語からの音訳）。拍（はく）と訳される。';
 
 $type = $_POST["dict"] ? $_POST["rubies"] ? Processor::ReadingsAndLemmas
-        : Processor::Lemmas : Processor::Readings;
+                        : Processor::Lemmas : Processor::Readings;
+//$type = Processor::ReadingsAndLemmas;
 $proc = new Processor($type);
-//$proc = new Processor(Processor::Readings);
+
 $retv = array();
+
+$sent = 0;
 foreach($text as $v) {
     $proc->send_text($v);
-    //echo "\n\nINPUT:\n$v\n";
+    $sent++;
+    if($sent >= 3) {
+        $retv[] = $proc->get_response();
+        $sent--;
+    }
+}
+while($sent) {
     $retv[] = $proc->get_response();
+    $sent--;
 }
 
 jexit(array(
