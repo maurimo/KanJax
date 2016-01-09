@@ -1,3 +1,3 @@
 <?php
-define('MECAB_CMD', 'mecab');
+define('MECAB_CMD', '/home/maurizio.monge/inst/bin/mecab');
 ?>
