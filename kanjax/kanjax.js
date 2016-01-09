@@ -27,7 +27,7 @@ var KanJax = {
     // while increasing this limit, keep in mind that each japanese char
     // is expanded to about 9 ascii chars, so, the POST request must allow
     // a request of size at least postJPCharsSoftLimit * 9.
-    postJPCharsSoftLimit: 5000,
+    postJPCharsSoftLimit: 10000,
     
     kanjiPopupTemplate: "Couldn't load popup template.",
 
@@ -155,7 +155,8 @@ var KanJax = {
             url = encodeURI(KanJax.basePath + "data.php?kanji=" + kanji);
             $("#kanjax_popup .editable").editable(url, {
                 id        : "key",
-                indicator : "<img style='height:1.15em' src='"+KanJax.basePath+"indicator.gif'>",
+                indicator : "<img style='height:1.15em' src='"+
+                                    KanJax.basePath+"indicator.gif'>",
                 tooltip   : "Click to edit...",
                 style     : "display: inline; margin: 0px;",
                 callback  : function(response, settings) {
@@ -509,14 +510,22 @@ var KanJax = {
         if(j < 0)
             return [[i,i], false];
         while(true) {
-            if(a[i] != b[j])
+            if(a[i] != b[j]) {
                 console.log('Mismatch: "'+a[i]+'" != "'+b[j]+'"');
-            if(i+1 >= a.length || j+1 >= b.length)
+                console.log(a);
+                console.log(b);
+                throw "Mismatch!";
+            }
+            if(i+1 >= a.length || j+1 >= b.length) {
+                //console.log('Match: '+a.substr(start_a, i+1-start_a));
                 return [[start_a, i+1], [start_b, j+1]];
+            }
             new_a = a.regexIndexOf(KanJax.JP_REG, i + 1);
             new_b = b.regexIndexOf(KanJax.JP_REG, j + 1);
-            if(new_a < 0 || new_b < 0)
+            if(new_a < 0 || new_b < 0) {
+                //console.log('Match: '+a.substr(start_a, i+1-start_a));
                 return [[start_a, i+1], [start_b, j+1]];
+            }
             i = new_a;
             j = new_b;
         }
@@ -658,6 +667,7 @@ var KanJax = {
         node = group[i][0];
         inlink = group[i][1];
         text = node.data;
+        //console.log('ntext: '+text);
 
         while(j < reading.length) {
             rj = reading[j];
@@ -666,8 +676,8 @@ var KanJax = {
 
             found = KanJax.findStringIn(text, readtext);
 
-            //console.log("F with "+text+" ~~ "+readtext+" ~~ " 
-            //    + found.toString() + " ~ "+is_simple_text);
+            //console.log("F with " + text + " ~~ " + readtext + " ~~ " 
+            //          + found.toString() + " ~ " + is_simple_text);
 
             // no japanese text, go to the next text node
             if(!found[0]) {

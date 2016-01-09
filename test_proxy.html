@@ -70,7 +70,7 @@ function myAddKanjiInfo() {
     var iframe = document.getElementById("myiframe");
     try {
         setError();
-        KanJax.setup(iframe.contentDocument);
+        KanJax.setup(iframe.contentDocument.body);
         KanJax.addKanjiInfo(iframe.contentDocument.body);
     } catch(e) {
         setError(e);

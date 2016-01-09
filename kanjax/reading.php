@@ -65,15 +65,19 @@ class Processor {
         '動詞'   => 'Verb',           // dōshi
         '助詞'   => 'Particle',       // joshi
         '接頭辞' => 'Prefix',         // settōji
+        '接頭詞' => 'Prefix',         // settōshi
         '接尾辞' => 'Suffix',         // setsuoji
         '特殊'   => 'Special',        // tokushu
         '記号'   => 'Symbol',         // kigō
-        '未定義語' => 'Undefined language' // miteigi-go
+        '未定義語' => 'Undefined language', // miteigi-go
+        'フィラー' => 'Filler'         // firā
     );
     const ForbiddenPos = array(
         '未定義語' => true, //undefined
         '助詞' => true, //particle
-        '記号' => true //symbol
+        '記号' => true, //symbol
+        '未定義語' => true, //undefined language
+        'フィラー' => true //filler
     );
     
     var $settings;
@@ -107,6 +111,7 @@ class Processor {
 
     function get_response() {
         $response = fgets($this->pipes[1]);
+        //echo "$response\n";
 
         // test if the program exited unexpectedly, if so somethings is wrong on the server side
         $status = proc_get_status ( $this->process );
@@ -119,6 +124,7 @@ class Processor {
         $reply = preg_split('/\s+/u', $response, NULL, PREG_SPLIT_NO_EMPTY);
         $retv = array();
         foreach($reply as $token) {
+            //echo "$token\n";
             if(!preg_match(self::ResponseReg[$this->settings], $token, $m))
                 jexit(Array(
                     "status" => "SERVER_ERROR",
@@ -217,7 +223,7 @@ class Processor {
                     array_add_string($retv, $middle8);
                 else
                     array_push($retv, array(
-                    'f' => $form8,
+                    'f' => $middle8,
                     'r' => $reading8
                 ));
             }
@@ -239,9 +245,11 @@ $text[] = "カリン、自分でまいた種は自分で刈り取[qw]";
 $text[] = 'モーラ、モラ（mora）とは、音韻論上、一定の時間的長さをもった音の分節単位。古典詩における韻律用語であるラテン語のmŏra（モラ）の転用（日本語における「モーラ」という表記は英語からの音訳であり、「モラ」という表記はラテン語からの音訳）。拍（はく）と訳される。';*/
 
 $proc = new Processor(Processor::ReadingsAndLemmas);
+//$proc = new Processor(Processor::Readings);
 $retv = array();
 foreach($text as $v) {
     $proc->send_text($v);
+    //echo "\n\nINPUT:\n$v\n";
     $retv[] = $proc->get_response();
 }
 
