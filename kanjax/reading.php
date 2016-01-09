@@ -16,7 +16,6 @@ require_once('settings.php');
 mb_internal_encoding("UTF-8");
 
 function jexit($obj) {
-    exit(json_encode($obj, JSON_UNESCAPED_UNICODE));
     exit(json_encode($obj)); //, JSON_UNESCAPED_UNICODE));
 }
 
