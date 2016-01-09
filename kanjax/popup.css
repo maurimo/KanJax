@@ -1,7 +1,7 @@
-.kanji_popup, .error_popup {
+.kanji_popup {
   width:         640px;
-  background-color: #e0e0ff;
-  border:        1px solid #ffffff;
+  background-color: #ddf;
+  border:        1px solid #00f;
   padding:       12px;
   border-radius: 17px;
   text-align:    center;

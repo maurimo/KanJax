@@ -6,13 +6,13 @@ String.prototype.regexIndexOf = function(regex, startpos) {
 
 var KanJax = {
     basePath: "kanjax/",
+    
+    fatalError: false,
 
     loadStaticJSON: false,
 
-    forcePopupPositionX: false,
-    
-    forcePopupPositionY: false,
-    
+    profile: true,
+
     rubySkipGroupIf: function(node) {
         if(['RB','RUBY'].indexOf(node.tagName) >= 0)
             return true;
@@ -54,6 +54,26 @@ var KanJax = {
     setupPopup: function() {
         var div, style, url;
 
+        // make sure the error popup has a style,
+        // even and in particular in case of fatal error
+        if(!document.getElementById("kanjax_error_popup_style")) {
+            style = document.createElement("style");
+            style.id = "kanjax_error_popup_style";
+            style.innerText = ".error_popup { "+
+                              "  background-color: #f44;"+
+                              "  border:           1px solid black;"+
+                              "  padding:          12px;"+
+                              "  border-radius:    17px;"+
+                              "  text-align:       center;"+
+                              "}";
+            document.head.appendChild(style);
+        }
+
+        if(KanJax.fatalError) {
+            console.log('setupPopup: quitting because of fatal errors');
+            return;
+        }
+
         // load the template, if loading local data just put here a static version
         if(KanJax.loadStaticJSON) {
             KanJax.iframeRequest(
@@ -61,8 +81,10 @@ var KanJax = {
                 function(result) {
                     if(result.status == "OK")
                         KanJax.kanjiPopupTemplate = result.data;
-                    else
+                    else {
                         KanJax.showErrorPopup(result);
+                        KanJax.fatalError = true;
+                    }
                 });
             //dictionary and furigana are not supported in the static case
         }
@@ -72,9 +94,11 @@ var KanJax = {
                 function(response) {
                     KanJax.kanjiPopupTemplate = response;
             }).fail(function(xhr, msg) {
-                KanJax.showErrorPopup({ "status": "AJAX_ERROR",
+                KanJax.showErrorPopup({
+                    "status": "AJAX_ERROR",
                     "message": KanJax.errorMessage(url, xhr, msg)
                 });
+                KanJax.fatalError = true;
             });
 
             url = KanJax.basePath + "dict_popup_template.html";
@@ -82,16 +106,18 @@ var KanJax = {
                 function(response) {
                     KanJax.dictPopupTemplate = response;
             }).fail(function(xhr, msg) {
-                KanJax.showErrorPopup({ "status": "AJAX_ERROR",
+                KanJax.showErrorPopup({
+                    "status": "AJAX_ERROR",
                     "message": KanJax.errorMessage(url, xhr, msg)
                 });
+                KanJax.fatalError = true;
             });
         }
 
         // load the css
-        if(!document.getElementById('kanjax_style')) {
+        if(!document.getElementById('kanjax_popup_style')) {
             style = document.createElement("link");
-            style.id = "kanjax_style";
+            style.id = "kanjax_popup_style";
             style.setAttribute("rel", "stylesheet");
             style.setAttribute("type", "text/css");
             style.setAttribute("href", KanJax.basePath + "popup.css");
@@ -113,7 +139,9 @@ var KanJax = {
         var el;
         if(el = document.getElementById('kanjax_popup'))
             KanJax.remove(el);
-        if(el = document.getElementById('kanjax_style'))
+        if(el = document.getElementById('kanjax_popup_style'))
+            KanJax.remove(el);
+        if(el = document.getElementById('kanjax_error_popup_style'))
             KanJax.remove(el);
     },
 
@@ -132,11 +160,9 @@ var KanJax = {
             var x, y;
             y = (window.innerHeight - $(div).outerHeight()) / 2;
             x = (window.innerWidth - $(div).outerWidth()) / 2;
-            if(typeof(KanJax.forcePopupPositionX)=='number')
-                x = KanJax.forcePopupPositionX;
-            if(typeof(KanJax.forcePopupPositionY)=='number')
-                y = KanJax.forcePopupPositionY;
             $(div).css({ display: 'none', visibility: 'visible' });
+            if(KanJax.bPopup)
+                KanJax.bPopup.close();
             KanJax.bPopup = $(div).bPopup({ speed: 120, position: [x, y] });
         }, 10);        
     },
@@ -166,14 +192,12 @@ var KanJax = {
                             KanJax.kanjiPopupCache[kanji][response.key] = response.value;
                         $(this).html(response.value);
                     }
-                    else {
-                        KanJax.bPopup.close();
+                    else
                         KanJax.showErrorPopup(response);
-                    }
                 },
                 onerror : function(req, el, xhr) {
-                    KanJax.bPopup.close();
-                    KanJax.showErrorPopup({ "status": "AJAX_ERROR",
+                    KanJax.showErrorPopup({
+                        "status": "AJAX_ERROR",
                         "message": KanJax.errorMessage(url, xhr)
                     });
                 }
@@ -186,9 +210,15 @@ var KanJax = {
 
     // show the popup, displaying an error message
     showErrorPopup: function(info) {
-        //console.log('showErr');
         var div, content;
+        
+        if(KanJax.fatalError) {
+            console.log('showErrorPopup: quitting because of fatal errors');
+            return;
+        }
+        
         div = document.getElementById("kanjax_popup");
+        //div = document.createElement('div');
         content = "<h2>Error!</h2>" + info.status;
         if(info.message)
             content += "<br/>" + info.message;
@@ -484,15 +514,18 @@ var KanJax = {
     
     // Looks for all kanjis, and for each sets a link with a click function.
     addKanjiInfo : function(el) {
-        var list, n, islink, parts, i, j, aN, tN, doc, frag;
-        //var t1, t2, t3;
-        t1 = new Date().getTime();
+        var list, n, islink, parts, i, j, aN, tN, doc, frag, t1, t2, t3;
+
+        if(KanJax.profile)
+            t1 = new Date().getTime();
 
         el = el || document.body;
         list = KanJax.textNodesUnder(el, true);
 
-        t2 = new Date().getTime();
-        console.log('t2: '+(t2-t1));
+        if(KanJax.profile) {
+            t2 = new Date().getTime();
+            console.log('[ki] node list time: ' + 0.001*(t2-t1));
+        }
 
         frag = el.ownerDocument.createDocumentFragment();
         for(i = 0; i<list.length; i++) {
@@ -506,8 +539,10 @@ var KanJax = {
             }
         }
 
-        t3 = new Date().getTime();
-        console.log('t3: '+(t3-t2));
+        if(KanJax.profile) {
+            t3 = new Date().getTime();
+            console.log('[ki] dom edit time: ' + 0.001*(t3-t2));
+        }
     },
 
     findStringIn : function(a, b) {
@@ -591,8 +626,8 @@ var KanJax = {
                 if(!(key in obj))
                     return "{unknown field "+key+"}";
                 val = obj[key];
-                console.log(key)
-                console.log(val)
+                //console.log(key)
+                //console.log(val)
                 if(flags == 'furigana')
                     val = val.replace(/\[(\S+)\|(\S+)\]/g, function(m,k,r) {
                         return '<ruby><rb>'+k+'</rb><rt>'+r+'</rt></ruby>';
@@ -609,7 +644,7 @@ var KanJax = {
             return a.cm < b.cm;
         });
         exp = KanJax.expandTemplate(KanJax.dictPopupTemplate, {entries: info});
-        console.log(exp);
+        //console.log(exp);
         div.innerHTML = exp;
         div.className = 'dict_popup';
         KanJax.makePopupVisible(div);
@@ -840,7 +875,11 @@ var KanJax = {
     
     addWordInfoStep : function(state) {
         var n, nl, text, p, currp, currstr, currgr, totstr,
-            strings, groups, skipthis, skipgroup, url;
+            strings, groups, skipthis, skipgroup, url,
+            req_time, t0, t, f, v;
+
+        if(KanJax.profile)
+            t0 = new Date().getTime();
 
         totstr = 0;
         strings = [];
@@ -861,9 +900,9 @@ var KanJax = {
                 skipthis = false;
                 //while(["A","B","I","EM","SPAN","FONT",
                  //   "STRONG","RUBY","RT","RB"].indexOf(p.tagName) >= 0) {
-                while(KanJax.display(p) == 'inline') {
-                //while(p.display == 'inline' || ["A","B","I","EM","SPAN","FONT",
-                // "STRONG","RUBY","RT","RB"].indexOf(p.tagName) >= 0) {
+                //while(KanJax.display(p) == 'inline') {
+                while(p.display == 'inline' || ["A","B","I","EM","SPAN","FONT",
+                    "STRONG","RUBY","RT","RB"].indexOf(p.tagName) >= 0) {
                     if(!skipgroup && KanJax.rubySkipGroupIf(p))
                         skipgroup = true;
                     p = p.parentNode;
@@ -895,15 +934,29 @@ var KanJax = {
             state.i++;
         }
 
-        //console.log(strings);
+        if(KanJax.profile)
+            req_time = new Date().getTime();
+
         if(!strings.length) {
-            if(state.settings && state.settings.success)
-                state.settings.success();
+            t = 0.001*(req_time-state.start_time);
+            console.log('[wi] total time: ' + t);
+            t = 0;
+            for(f in state.profiling) {
+                v = state.profiling[f];
+                console.log('[TOT] '+f+': ' + v);
+                t += v;
+            }
+            console.log('[TOT] accounted: ' + t);
             return;
         }
 
+        if(KanJax.profile) {
+            t = 0.001*(req_time-t0);
+            state.profiling.REQ_PREP += t;
+            console.log('[wi '+state.step+'] req prepared in: ' + t);
+        }
+
         url = encodeURI(KanJax.basePath + "reading.php");
-        var req_start = new Date().getTime();
         $.ajax({
             type: "POST",
             data: {
@@ -913,30 +966,43 @@ var KanJax = {
             },
             url: url,
             success: function(result) {
-                var i;
-                var t1;
-                t1 = new Date().getTime();
-                console.log('reqtm: '+(t1-req_start));
+                var i, t1, t2, t;
+
+                if(KanJax.profile) {
+                    t1 = new Date().getTime();
+                    t = 0.001*(t1-req_time);
+                    state.profiling.REQ_WAIT += t;
+                    console.log('[wi '+state.step+'] req waited for: ' + t);
+                }
+
                 if(result.status == "OK") {
-                    console.log('Wall time: ' + result.wall_time);
-                    console.log('CPU time: ' + result.cpu_time);
+                    if(KanJax.profile) {
+                        console.log('[php '+state.step+'] Wall time: ' + result.wall_time);
+                        console.log('[php '+state.step+'] CPU time: ' + result.cpu_time);
+                    }
+
                     for(i = 0; i < groups.length; ++i)
                         KanJax.addGroupReading(groups[i],
                                                result.data[i],
                                                state.settings.kanji_info);
-                    t3 = new Date().getTime();
-                    console.log('step1: '+(t3-t1));
+
+                    if(KanJax.profile) {
+                        t2 = new Date().getTime();
+                        t = 0.001*(t2-t1);
+                        state.profiling.DOM_EDIT += t;
+                        console.log('[wi '+state.step+'] dom edit: ' + t);
+                        state.step += 1;
+                    }
+
                     KanJax.addWordInfoStep(state);
-                    t2 = new Date().getTime();
-                    console.log('step2: '+(t2-t1));
-                    console.log('begin: '+(t2-state.start_time));
                 }
                 else {
                     KanJax.showErrorPopup(result);  
                 }
             },
             error: function(xhr, msg) {
-                KanJax.showErrorPopup({ "status": "AJAX_ERROR",
+                KanJax.showErrorPopup({
+                    "status": "AJAX_ERROR",
                     "message": KanJax.errorMessage(url, xhr)
                 });
             }
@@ -944,16 +1010,40 @@ var KanJax = {
     },
 
     addWordInfo : function(el, settings) {
-        var el, list, status;
+        var el, list, status, t, t1, t2, profiling;
         el = el || document.body;
+
+        if(KanJax.profile) {
+            profiling = {
+                TEXT_LIST: 0,
+                REQ_WAIT: 0,
+                REQ_PREP: 0,
+                DOM_EDIT: 0
+            };
+            t1 = new Date().getTime();
+        }
+
         list = KanJax.textNodesUnder(el, true);
+
+        if(KanJax.profile) {
+            t2 = new Date().getTime();
+            t = 0.001*(t2-t1);
+            profiling.TEXT_LIST += t;
+            console.log('[wi] text list: ' + t);
+        }
+
         state = {
             list: list,
             i: 0,
             settings: settings,
-            start_time: new Date().getTime()
+            start_time: t2,
         };
-        //console.log(state);
+
+        if(KanJax.profile) {
+            state.step = 0;
+            state.profiling = profiling;
+        }
+
         KanJax.addWordInfoStep(state);
     },
 
@@ -995,6 +1085,20 @@ var KanJax = {
     },
 
     addInfo : function(el, settings) {
+        if(KanJax.fatalError) {
+            console.log('addInfo: quitting because of fatal errors');
+            return;
+        }
+
+        if(KanJax.loadStaticJSON) {
+            if(settings.dict || settings.rubies)
+                console.log('dict and rubies are not supported when using static data');
+            settings.dict = settings.rubies = false;
+        }
+        if(!settings.dict && !settings.rubies && !settings.kanji_info) {
+            console.log('no info to add?');
+            return;
+        }
         if(settings.dict || settings.rubies)
             KanJax.addWordInfo(el, settings);
         else
@@ -1006,8 +1110,14 @@ var KanJax = {
         KanJax.removeWordInfo(el);
     },
 
-    setup : function(el) {
+    setupTarget: function(el) {
         var style, doc;
+        
+        if(KanJax.fatalError) {
+            console.log('setupTarget: quitting because of fatal errors');
+            return;
+        }
+
         doc = el ? el.ownerDocument : document;
         if(!doc.getElementById("kanjax_css")) {
             style = doc.createElement("link");
@@ -1019,7 +1129,7 @@ var KanJax = {
         }
     },
 
-    cleanup: function(el) {
+    cleanupTarget: function(el) {
         var doc, css;
         doc = el ? el.ownerDocument : document;
         if(css = doc.getElementById('kanjax_css'))
@@ -1027,16 +1137,21 @@ var KanJax = {
     },
 
     basicInstall: function(el) {
+        if(KanJax.fatalError) {
+            console.log('basicInstall: quitting because of fatal errors');
+            return;
+        }
+
         KanJax.setupPopup();
         el = el || document.body;
-        KanJax.setup(el);
+        KanJax.setupTarget(el);
         KanJax.addInfo(el, {kanji_info: 1, dict: 1, rubies: 1});
     },
 
     fullUninstall: function() {
         KanJax.cleanupPopup();
         el = el || document.body;
-        KanJax.cleanup(el);
+        KanJax.cleanupTarget(el);
         KanJax.removeKanjiInfo(el);
         KanJax.removeWordInfo(el);
     }
