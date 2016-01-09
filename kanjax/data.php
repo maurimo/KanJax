@@ -10,7 +10,7 @@ if($DEBUG) {
 }
 
 function jexit($obj) {
-    exit(json_encode($obj, JSON_UNESCAPED_UNICODE));
+    exit(json_encode($obj)); //, JSON_UNESCAPED_UNICODE));
 }
 
 header('Content-type:application/json;charset=utf-8');

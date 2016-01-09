@@ -16,7 +16,7 @@ require_once('settings.php');
 mb_internal_encoding("UTF-8");
 
 function jexit($obj) {
-    exit(json_encode($obj, JSON_UNESCAPED_UNICODE));
+    exit(json_encode($obj)); //, JSON_UNESCAPED_UNICODE));
 }
 
 function kata_to_hira($str, $enc) {
@@ -35,16 +35,16 @@ class Processor {
     const Lemmas = 2;
     const ReadingsAndLemmas = 3;
 
-    const MecabArgsProcess = array(false,
+    var $MecabArgsProcess = array(false,
         "--node-format=%m[%f[7]] ", // only readings
         "--node-format=%m[%f[6],%f[0]] ", // lemma and pos
         "--node-format=%m[%f[7],%f[6],%f[0]] " // reading, lemma and pos
     );
-    const MecabArgsExtra = array(
+    var $MecabArgsExtra = array(
         "--eos-format=\n",
         "--unk-format=%m[] "
     );
-    const ResponseReg = array(false,
+    var $ResponseReg = array(false,
         '/^(.*)\\[([^\\]\\[]*)\\]$/u',
         '/^(.*)\\[([^,\\]\\[]*),?([^,\\]\\[]*)\\]$/u',
         '/^(.*)\\[([^,\\]\\[]*),?([^,\\]\\[]*),?([^,\\]\\[]*)\\]$/u'
@@ -52,7 +52,7 @@ class Processor {
     var $pipes;
     var $process;
 
-    const Pos = array(
+    var $Pos = array(
         '形容詞' => 'Adjective',      // keiyōshi
         '連体詞' => 'Attributive',    // rentaishi
         '副詞'   => 'Adverb',         // fukushi
@@ -72,7 +72,7 @@ class Processor {
         '未定義語' => 'Undefined language', // miteigi-go
         'フィラー' => 'Filler'         // firā
     );
-    const ForbiddenPos = array(
+    var $ForbiddenPos = array(
         '未定義語' => true, //undefined
         '助詞' => true, //particle
         '記号' => true, //symbol
@@ -86,8 +86,8 @@ class Processor {
         $this->settings = $_settings;
 
         $cmd = MECAB_CMD;
-        $cmd .= ' ' . escapeshellarg(self::MecabArgsProcess[$this->settings]);
-        foreach(self::MecabArgsExtra as $arg)
+        $cmd .= ' ' . escapeshellarg($this->MecabArgsProcess[$this->settings]);
+        foreach($this->MecabArgsExtra as $arg)
             $cmd .= ' ' . escapeshellarg($arg);
 
         $descriptorspec = array(
@@ -125,7 +125,7 @@ class Processor {
         $retv = array();
         foreach($reply as $token) {
             //echo "$token\n";
-            if(!preg_match(self::ResponseReg[$this->settings], $token, $m))
+            if(!preg_match($this->ResponseReg[$this->settings], $token, $m))
                 jexit(Array(
                     "status" => "SERVER_ERROR",
                     "message" => "Can't parse token: <br/>" . htmlspecialchars($token)
@@ -148,20 +148,20 @@ class Processor {
                 $pos8 = $m[4];
             }
             if( ($this->settings & self::Lemmas) and
-                    !array_key_exists($pos8, self::Pos))
+                    !array_key_exists($pos8, $this->Pos))
                 jexit(array(
                     "status" => "SERVER_ERROR",
                     "message" => "Unknown POS: '".htmlspecialchars($pos8)."'"
                 ));
 
             if($this->settings == self::Lemmas) {
-                if(array_key_exists($pos8, self::ForbiddenPos))
+                if(array_key_exists($pos8, $this->ForbiddenPos))
                     array_add_string($retv, $form8);
                 else
                     array_push($retv, array(
                         'f' => $form8,
                         'l' => $lemma8,
-                        'p' => self::Pos[$pos8]
+                        'p' => $this->Pos[$pos8]
                     ));
                 continue;
             }
@@ -192,16 +192,16 @@ class Processor {
                                 $rl-$req-$leq, 'UTF-32'), 'UTF-8', 'UTF-32');
 
             if( ($this->settings & self::Lemmas) and
-                    !array_key_exists($pos8, self::ForbiddenPos) ) {
+                    !array_key_exists($pos8, $this->ForbiddenPos) ) {
                 $obj = array(
                     'f' => $form8,
                     'l' => $lemma8,
-                    'p' => self::Pos[$pos8]
+                    'p' => $this->Pos[$pos8]
                 );
                 if($req == 0 && $leq == 0)
                     $obj['r'] = $reading8;
                 else if($req + $leq < $rl)
-                    $obj['r'] = [$reading8, $leq, $l-$req];
+                    $obj['r'] = array($reading8, $leq, $l-$req);
                 array_push($retv, $obj);
                 continue;
             }
@@ -240,9 +240,9 @@ class Processor {
 header('Content-type:application/json;charset=utf-8');
 
 $text = $_POST["text"];
-/*$text = array();
-$text[] = "カリン、自分でまいた種は自分で刈り取[qw]";
-$text[] = 'モーラ、モラ（mora）とは、音韻論上、一定の時間的長さをもった音の分節単位。古典詩における韻律用語であるラテン語のmŏra（モラ）の転用（日本語における「モーラ」という表記は英語からの音訳であり、「モラ」という表記はラテン語からの音訳）。拍（はく）と訳される。';*/
+//$text = array();
+//$text[] = "カリン、自分でまいた種は自分で刈り取[qw]";
+//$text[] = 'モーラ、モラ（mora）とは、音韻論上、一定の時間的長さをもった音の分節単位。古典詩における韻律用語であるラテン語のmŏra（モラ）の転用（日本語における「モーラ」という表記は英語からの音訳であり、「モラ」という表記はラテン語からの音訳）。拍（はく）と訳される。';
 
 $type = $_POST["dict"] ? $_POST["rubies"] ? Processor::ReadingsAndLemmas
         : Processor::Lemmas : Processor::Readings;
