@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!DOCTYPE html>
 <html>
 <head>
 <title>KanJax Demo</title>
@@ -7,7 +7,6 @@
 <script src="lib/jquery.bpopup.min.js"></script>
 <script src="lib/jquery.jeditable.mini.js"></script>
 <script src="kanjax/kanjax.js"></script>
-</head>
 <style>
 .maincontainer {
   background-color: #e0e0ff;
@@ -27,17 +26,21 @@ body {
   text-align: center;
   font-size: 14pt;
   font-family: Sans;
+  margin: 0px;
+  overflow: hidden;
 }
 iframe {
   display:block;
-  width: 98%;
+  width: 100%;
   margin: 0px;
-  margin-top: 0.5em;
-  height: 95%;
-  padding: 0.3em;
+  /*margin-top: 0.5em;*/
+  height: 100%;
+  border: none;
+  border-top: 1px solid black;
+  /*padding: 0.3em;
   background-color: #c0c0ff;
   border: 3px solid #000000;
-  border-radius: .4em;
+  border-radius: .4em;(/
 }
 .cell {
   align-content: center;
@@ -57,10 +60,21 @@ iframe {
 }
 </style>
 <script language="JavaScript" type="text/javascript">
+function onResize() {
+    var iframe = document.getElementById("myiframe");
+    var h = window.innerHeight - $(iframe).offset().top-1;
+    //iframe.style.height = h+'px';
+    console.log('h -> '+h);
+    $(iframe).height(h);
+}
+
 $(function() {
     //KanJax.basePath = '/~maurizio/kanjax/kanjax/';
     KanJax.styleFile = 'kanjax_light.css';
     KanJax.setupPopup();
+
+    onResize();
+    $(window).on('resize', onResize);
 });
 
 function setError(e) {
@@ -150,6 +164,7 @@ function myBack() {
     }
 }
 </script>
+</head>
 <body>
 <table border="0" align="center"><tr><td class="cell">
   <h2>KanJax "iframe" Demo</h2>
@@ -160,7 +175,7 @@ function myBack() {
                               onclick="myBack();"/>
     <input type="button" value="Go!" onclick="myGo();"/><br/>
     <span style="font-size: 70%">
-    <input id="autoaddinfo" type="checkbox">Auto-add info on load</input>
+    <input id="autoaddinfo" type="checkbox"/> Auto-add info on load
     <input type="button" value="Add info"
                               onclick="myAddInfo();"/>
     <input type="button" value="Remove info"

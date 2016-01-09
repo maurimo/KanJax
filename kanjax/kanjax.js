@@ -690,6 +690,7 @@ var KanJax = {
                 });
             }
         });
+        return false;
     },
 
     addGroupReading : function(group, word_data, kanji_info) {
