@@ -9,12 +9,8 @@
 <script src="kanjax/kanjax.js"></script>
 <script language="JavaScript" type="text/javascript">
 $(function() {
-    //KanJax.loadStaticJSON = true;
-    KanJax.setup();
-    KanJax.setupPopup();
-    KanJax.addRubies(document.body, { success: function() {
-        KanJax.addLinks();
-    }});
+    KanJax.loadStaticJSON = true;
+    KanJax.basicInstall();
 });
 </script>
 </head>

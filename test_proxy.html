@@ -66,43 +66,43 @@ function setError(e) {
     showerr.innerText = e ? e.message : "";
 }
 
-function myAddLinks() {
+function myAddKanjiInfo() {
     var iframe = document.getElementById("myiframe");
     try {
         setError();
         KanJax.setup(iframe.contentDocument);
-        KanJax.addLinks(iframe.contentDocument.body);
+        KanJax.addKanjiInfo(iframe.contentDocument.body);
     } catch(e) {
         setError(e);
     }
 }
 
-function myAddRubies(settings) {
+function myAddWordInfo(settings) {
     var iframe = document.getElementById("myiframe");
     try {
         setError();
-        KanJax.setup(iframe.contentDocument);
-        KanJax.addRubies(iframe.contentDocument.body, settings);
+        KanJax.setup(iframe.contentDocument.body);
+        KanJax.addWordInfo(iframe.contentDocument.body, settings);
     } catch(e) {
         setError(e);
     }
 }
 
-function myRemoveLinks() {
+function myRemoveKanjiInfo() {
     var iframe = document.getElementById("myiframe");
     try {
         setError();
-        KanJax.removeLinks(iframe.contentDocument.body);
+        KanJax.removeKanjiInfo(iframe.contentDocument.body);
     } catch(e) {
         setError(e);
     }
 }
 
-function myRemoveRubies() {
+function myRemoveWordInfo() {
     var iframe = document.getElementById("myiframe");
     try {
         setError();
-        KanJax.removeRubies(iframe.contentDocument.body);
+        KanJax.removeWordInfo(iframe.contentDocument.body);
     } catch(e) {
         setError(e);
     }
@@ -120,7 +120,7 @@ function myFrameLoad() {
         var outurl = window.location.origin + proxypath + '?url=';
         var inurl = iframe.contentWindow.location.origin;
         if(iframe.contentWindow.location.origin == window.location.origin
-        && myHistory.length >= 1)
+                                                    && myHistory.length >= 1)
         inurl = new URL(myHistory[0]).origin;
         inurl += iframe.contentWindow.location.pathname + iframe.contentWindow.location.search;
         var url = outurl + encodeURIComponent(inurl) + iframe.contentWindow.location.hash;
@@ -142,15 +142,15 @@ function myFrameLoad() {
 
     var autoaddrubies = document.getElementById("autoaddrubies");
     if(autoaddrubies.checked)
-        myAddRubies({ success: function() {
+        myAddWordInfo({ success: function() {
             var autoadd = document.getElementById("autoadd");
             if(autoadd.checked)
-                myAddLinks();
+                myAddKanjiInfo();
         }});
     else {
         var autoadd = document.getElementById("autoadd");
         if(autoadd.checked)
-            myAddLinks();
+            myAddKanjiInfo();
     }
 }
 
@@ -183,15 +183,15 @@ function myBack() {
     <input type="button" value="Go!" onclick="myGo();"/><br/>
     <span style="font-size: 70%">
     <input id="autoadd" type="checkbox">Auto-add kanji info on load</input>
-    <input type="button" value="Add info"
-                              onclick="myAddLinks();"/>
-    <input type="button" value="Remove info"
-                              onclick="myRemoveLinks();"/><br/>
+    <input type="button" value="Add kanji info"
+                              onclick="myAddKanjiInfo();"/>
+    <input type="button" value="Remove kanji info"
+                              onclick="myRemoveKanjiInfo();"/><br/>
     <input id="autoaddrubies" type="checkbox">Auto-add rubies on load</input>
-    <input type="button" value="Add rubies"
-                              onclick="myAddRubies();"/>
-    <input type="button" value="Remove rubies"
-                              onclick="myRemoveRubies();"/>
+    <input type="button" value="Add word info"
+                              onclick="myAddWordInfo();"/>
+    <input type="button" value="Remove word info"
+                              onclick="myRemoveWordInfo();"/>
     </span>
 </td></tr></table>
     <div id="showerr"></div>
