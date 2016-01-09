@@ -16,6 +16,7 @@ require_once('settings.php');
 mb_internal_encoding("UTF-8");
 
 function jexit($obj) {
+    exit(json_encode($obj, JSON_UNESCAPED_UNICODE));
     exit(json_encode($obj)); //, JSON_UNESCAPED_UNICODE));
 }
 
@@ -39,24 +40,24 @@ function is_one_of($x, $a, $b) {
 }
 
 class Processor {
-    const Readings = 1;
-    const Lemmas = 2;
-    const ReadingsAndLemmas = 3;
+    const Lemmas = 1;
+    const Rubies = 2;
+    const FullReadings = 4;
 
-    var $MecabArgsProcess = array(false,
-        "--node-format=%m[%f[7]] ", // only readings
-        "--node-format=%m[%f[6],%f[0]] ", // lemma and pos
-        "--node-format=%m[%f[7],%f[6],%f[0]] " // reading, lemma and pos
-    );
+    const MecabArgsReadingLemmaPos = "--node-format=%m[%f[7],%f[6],%f[0]] ";
+    const MecabArgsLemmaPos = "--node-format=%m[%f[6],%f[0]] ";
+    const MecabArgsReading  = "--node-format=%m[%f[7]] ";
+
     var $MecabArgsExtra = array(
         "--eos-format=\n",
         "--unk-format=%m[] "
     );
-    var $ResponseReg = array(false,
-        '/^(.*)\\[([^\\]\\[]*)\\]$/u',
-        '/^(.*)\\[([^,\\]\\[]*),?([^,\\]\\[]*)\\]$/u',
-        '/^(.*)\\[([^,\\]\\[]*),?([^,\\]\\[]*),?([^,\\]\\[]*)\\]$/u'
-    );
+    const ResponseRegReadingLemmaPos =
+                '/^(.*)\\[([^,\\]\\[]*),?([^,\\]\\[]*),?([^,\\]\\[]*)\\]$/u';
+    const ResponseRegLemmaPos = '/^(.*)\\[([^,\\]\\[]*),?([^,\\]\\[]*)\\]$/u';
+    const ResponseRegReading = '/^(.*)\\[([^\\]\\[]*)\\]$/u';
+    var $response_reg;
+
     var $pipes;
     var $process;
 
@@ -94,7 +95,18 @@ class Processor {
         $this->settings = $_settings;
 
         $cmd = MECAB_CMD;
-        $cmd .= ' ' . escapeshellarg($this->MecabArgsProcess[$this->settings]);
+        if($this->settings == self::Lemmas) {
+            $cmd .= ' ' . escapeshellarg(self::MecabArgsLemmaPos);
+            $this->response_reg = self::ResponseRegLemmaPos;
+        }
+        else if(!($this->settings & self::Lemmas)) {
+            $cmd .= ' ' . escapeshellarg(self::MecabArgsReading);
+            $this->response_reg = self::ResponseRegReading;
+        }
+        else {
+            $cmd .= ' ' . escapeshellarg(self::MecabArgsReadingLemmaPos);
+            $this->response_reg = self::ResponseRegReadingLemmaPos;
+        }
         foreach($this->MecabArgsExtra as $arg)
             $cmd .= ' ' . escapeshellarg($arg);
 
@@ -119,7 +131,6 @@ class Processor {
 
     function get_response() {
         $response = fgets($this->pipes[1]);
-        //echo "$response\n";
 
         // test if the program exited unexpectedly, 
         // if so somethings is wrong on the server side
@@ -127,14 +138,15 @@ class Processor {
         if(!$status['running'])
             jexit(Array(
                 "status" => "SERVER_ERROR",
-                "message" => "Command exited unexpectedly: <br/>".htmlspecialchars($status['command'])
+                "message" => "Command exited unexpectedly: <br/>" .
+                              htmlspecialchars($status['command'])
             ));
 
         $reply = preg_split('/\s+/u', $response, NULL, PREG_SPLIT_NO_EMPTY);
         $retv = array();
         foreach($reply as $token) {
             //echo "$token\n";
-            if(!preg_match($this->ResponseReg[$this->settings], $token, $m))
+            if(!preg_match($this->response_reg, $token, $m))
                 jexit(Array(
                     "status" => "SERVER_ERROR",
                     "message" => "Can't parse token: <br/>" . htmlspecialchars($token)
@@ -145,40 +157,45 @@ class Processor {
                 array_add_string($retv, $form8);
                 continue;
             }
-            if($this->settings == self::Readings)
-                $fullreading8 = $m[2];
-            else if($this->settings == self::Lemmas) {
+            if($this->settings == self::Lemmas) {
                 $lemma8 = $m[2];
                 $pos8 = $m[3];
             }
+            else if(!($this->settings & self::Lemmas))
+                $fullreading8 = $m[2];
             else {
                 $fullreading8 = $m[2];
                 $lemma8 = $m[3];
                 $pos8 = $m[4];
             }
             if( ($this->settings & self::Lemmas) and
-                    !array_key_exists($pos8, $this->Pos))
+                    !array_key_exists($pos8, $this->Pos) )
                 jexit(array(
                     "status" => "SERVER_ERROR",
                     "message" => "Unknown POS: '".htmlspecialchars($pos8)."'"
                 ));
 
-            if($this->settings == self::Lemmas) {
-                if(array_key_exists($pos8, $this->ForbiddenPos))
+            if(!($this->settings & self::Rubies)) {
+                if(($this->settings & self::Lemmas) and
+                    array_key_exists($pos8, $this->ForbiddenPos))
                     array_add_string($retv, $form8);
-                else
-                    array_push($retv, array(
-                        'f' => $form8,
-                        'l' => $lemma8,
-                        'p' => $this->Pos[$pos8]
-                    ));
+                else {
+                    $obj = array('f' => $form8);
+                    if($this->settings & self::FullReadings)
+                        $obj['c'] = kata_to_hira($fullreading8, 'UTF-8');
+                    if($this->settings & self::Lemmas) {
+                        $obj['l'] = $lemma8;
+                        $obj['p'] = $this->Pos[$pos8];
+                    }
+                    array_push($retv, $obj);
+                }
                 continue;
             }
 
             $form32 = mb_convert_encoding($form8, 'UTF-32', 'UTF-8');
             $rkata32 = mb_convert_encoding($fullreading8, 'UTF-32', 'UTF-8');
             $rhira32 = kata_to_hira($rkata32, 'UTF-32');
-            //echo $form .'/'.$rkata.'/'.$rhira."\n";
+
             $leq = 0;
             $req = 0;
             $l = mb_strlen($form32, 'UTF-32');
@@ -199,17 +216,21 @@ class Processor {
                     ? $rhira32 : mb_substr($rhira32, $leq, $rl-$req-$leq, 'UTF-32'),
                     'UTF-8', 'UTF-32');
 
-            if( ($this->settings & self::Lemmas) and
+            if( ($this->settings & (self::Lemmas|self::FullReadings)) and
                     !array_key_exists($pos8, $this->ForbiddenPos) ) {
-                $obj = array(
-                    'f' => $form8,
-                    'l' => $lemma8,
-                    'p' => $this->Pos[$pos8]
-                );
+                $obj = array('f' => $form8);
                 if($req == 0 && $leq == 0)
                     $obj['r'] = $reading8;
                 else if($req + $leq < $rl)
                     $obj['r'] = array($reading8, $leq, $l-$req);
+                if($this->settings & self::Lemmas) {
+                    $obj['l'] = $lemma8;
+                    $obj['p'] = $this->Pos[$pos8];
+                }
+                if($this->settings & self::FullReadings) {
+                    $obj['c'] = ($req == 0 && $leq == 0) ? $reading8
+                        : mb_convert_encoding($rhira32, 'UTF-8', 'UTF-32');
+                }
                 array_push($retv, $obj);
                 continue;
             }
@@ -253,8 +274,13 @@ $text = $_POST["text"];
 //$text[] = "カリン、自分でまいた種は自分で刈り取[qw]";
 //$text[] = 'モーラ、モラ（mora）とは、音韻論上、一定の時間的長さをもった音の分節単位。古典詩における韻律用語であるラテン語のmŏra（モラ）の転用（日本語における「モーラ」という表記は英語からの音訳であり、「モラ」という表記はラテン語からの音訳）。拍（はく）と訳される。';
 
-$type = $_POST["dict"] ? $_POST["rubies"] ? Processor::ReadingsAndLemmas
-                        : Processor::Lemmas : Processor::Readings;
+$type = 0;
+if($_POST["dict"])
+    $type |= Processor::Lemmas;
+if($_POST["rubies"])
+    $type |= Processor::Rubies;
+if($_POST["full_reading"])
+    $type |= Processor::FullReadings;
 //$type = Processor::ReadingsAndLemmas;
 $proc = new Processor($type);
 

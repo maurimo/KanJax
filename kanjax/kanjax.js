@@ -669,7 +669,7 @@ var KanJax = {
         e.preventDefault();
         e.stopPropagation();
         word = e.currentTarget.dataset['lemma'];
-        console.log(e.currentTarget.dataset['lemma']);
+        //console.log(e.currentTarget.dataset['lemma']);
 
         $.ajax({
             url: KanJax.basePath + 'dict.php',
@@ -782,8 +782,12 @@ var KanJax = {
                 }
                 if(!rd_info || rd_info_array) {
                     container = doc.createElement("span");
-                    if(!rd_info)
-                        container.appendChild(doc.createTextNode(orig));
+                    if(!rd_info) {
+                        if(kanji_info)    
+                            KanJax.fillFragmentWithKanjiInfo(container, orig, inlink);
+                        else
+                            container.appendChild(doc.createTextNode(orig));
+                    }
                     else if(rd_info[1] > 0)
                         container.appendChild(doc.createTextNode(orig.substr(0,rd_info[1])));
                 }
@@ -796,7 +800,6 @@ var KanJax = {
                         el = doc.createElement("ruby");
 
                         word_node = el2 = doc.createElement("rb");
-                        //console.log("3< "+ctext);
                         if(kanji_info)    
                             KanJax.fillFragmentWithKanjiInfo(el2, ctext, inlink);
                         else
@@ -816,7 +819,10 @@ var KanJax = {
                         word_node = el = doc.createElement("span");
                         el.className = "kanjax_ruby";
                         el.appendChild(el2);
-                        el.appendChild(doc.createTextNode(ctext));
+                        if(kanji_info)    
+                            KanJax.fillFragmentWithKanjiInfo(el2, ctext, inlink);
+                        else
+                            el.appendChild(doc.createTextNode(ctext));
                     }
                 }
 
@@ -830,16 +836,20 @@ var KanJax = {
                 }
                 else
                     frag.appendChild(el);
-                if(wd.l) {
+                if(wd.l || wd.c) {
                     if(word_node.className)
                         word_node.className += ' kanjax_lemma';
                     else
                         word_node.className = 'kanjax_lemma';
-                    word_node.dataset['lemma'] = wd.l;
-                    word_node.dataset['pos'] = wd.p;
-                    word_node.onmousedown = inlink
-                        ? KanJax.activateDictPopupMiddle
-                        : KanJax.activateDictPopupLeftOrMiddle;
+                    if(wd.c)
+                        word_node.dataset['reading'] = wd.c;
+                    if(wd.l) {
+                        word_node.dataset['lemma'] = wd.l;
+                        word_node.dataset['pos'] = wd.p;
+                        word_node.onmousedown = inlink
+                            ? KanJax.activateDictPopupMiddle
+                            : KanJax.activateDictPopupLeftOrMiddle;
+                    }
                 }
             }
 
@@ -962,7 +972,8 @@ var KanJax = {
             data: {
                 text: strings,
                 dict: state.settings.dict ? 1 : 0,
-                rubies: state.settings.rubies ? 1 : 0
+                rubies: state.settings.rubies ? 1 : 0,
+                full_reading: state.settings.full_reading ? 1 : 0
             },
             url: url,
             success: function(result) {
@@ -983,7 +994,7 @@ var KanJax = {
                         console.log('[php '+state.step+'] CPU time: ' + result.cpu_time);
                     }
 
-                    for(i = 0; i < 0*groups.length; ++i)
+                    for(i = 0; i < groups.length; ++i)
                         KanJax.addGroupReading(groups[i],
                                                result.data[i],
                                                state.settings.kanji_info);
@@ -1095,15 +1106,18 @@ var KanJax = {
         }
 
         if(KanJax.loadStaticJSON) {
-            if(settings.dict || settings.rubies)
-                console.log('dict and rubies are not supported when using static data');
-            settings.dict = settings.rubies = false;
+            if(settings.dict || settings.rubies || settings.full_reading)
+                console.log('dict, rubies, full_reading are not supported when using static data');
+            settings.dict = settings.rubies = settings.full_reading = false;
         }
-        if(!settings.dict && !settings.rubies && !settings.kanji_info) {
+        if(!settings.dict 
+            && !settings.rubies 
+            && !settings.kanji_info
+            && !settings.full_reading) {
             console.log('no info to add?');
             return;
         }
-        if(settings.dict || settings.rubies)
+        if(settings.dict || settings.rubies || settings.full_reading)
             KanJax.addWordInfo(el, settings);
         else
             KanJax.addKanjiInfo(el);
@@ -1140,16 +1154,19 @@ var KanJax = {
             css.remove();
     },
 
-    basicInstall: function(el) {
+    basicInstall: function(el, settings) {
         if(KanJax.fatalError) {
             console.log('basicInstall: quitting because of fatal errors');
             return;
         }
 
         KanJax.setupPopup();
+
         el = el || document.body;
         KanJax.setupTarget(el);
-        KanJax.addInfo(el, {kanji_info: 1, dict: 1, rubies: 1});
+
+        settings = settings || {kanji_info: 1, dict: 1, rubies: 1, full_reading: 0};
+        KanJax.addInfo(el, settings);
     },
 
     fullUninstall: function() {

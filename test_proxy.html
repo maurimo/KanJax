@@ -67,8 +67,14 @@ function setError(e) {
     showerr.innerText = e ? e.message : "";
 }
 
-function myAddInfo(settings) {
+function myAddInfo() {
     var iframe = document.getElementById("myiframe");
+    var settings = {
+        kanji_info: 1,
+        dict: 1,
+        rubies: 0,
+        full_reading: 0
+    }
     try {
         setError();
         KanJax.setupTarget(iframe.contentDocument.body);
@@ -155,7 +161,7 @@ function myBack() {
     <span style="font-size: 70%">
     <input id="autoaddinfo" type="checkbox">Auto-add info on load</input>
     <input type="button" value="Add info"
-                              onclick="myAddInfo({kanji_info: 1, dict: 1, rubies: 1});"/>
+                              onclick="myAddInfo();"/>
     <input type="button" value="Remove info"
                               onclick="myRemoveInfo();"/>
     </span>
