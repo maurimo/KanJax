@@ -67,43 +67,22 @@ function setError(e) {
     showerr.innerText = e ? e.message : "";
 }
 
-function myAddKanjiInfo() {
+function myAddInfo(settings) {
     var iframe = document.getElementById("myiframe");
     try {
         setError();
         KanJax.setup(iframe.contentDocument.body);
-        KanJax.addKanjiInfo(iframe.contentDocument.body);
+        KanJax.addInfo(iframe.contentDocument.body, settings);
     } catch(e) {
         setError(e);
     }
 }
 
-function myAddWordInfo(settings) {
+function myRemoveInfo() {
     var iframe = document.getElementById("myiframe");
     try {
         setError();
-        KanJax.setup(iframe.contentDocument.body);
-        KanJax.addWordInfo(iframe.contentDocument.body, settings);
-    } catch(e) {
-        setError(e);
-    }
-}
-
-function myRemoveKanjiInfo() {
-    var iframe = document.getElementById("myiframe");
-    try {
-        setError();
-        KanJax.removeKanjiInfo(iframe.contentDocument.body);
-    } catch(e) {
-        setError(e);
-    }
-}
-
-function myRemoveWordInfo() {
-    var iframe = document.getElementById("myiframe");
-    try {
-        setError();
-        KanJax.removeWordInfo(iframe.contentDocument.body);
+        KanJax.removeInfo(iframe.contentDocument.body);
     } catch(e) {
         setError(e);
     }
@@ -141,18 +120,9 @@ function myFrameLoad() {
         back.disabled = false;
     }
 
-    var autoaddrubies = document.getElementById("autoaddrubies");
-    if(autoaddrubies.checked)
-        myAddWordInfo({ success: function() {
-            var autoadd = document.getElementById("autoadd");
-            if(autoadd.checked)
-                myAddKanjiInfo();
-        }});
-    else {
-        var autoadd = document.getElementById("autoadd");
-        if(autoadd.checked)
-            myAddKanjiInfo();
-    }
+    var autoaddinfo = document.getElementById("autoaddinfo");
+    if(autoaddinfo.checked)
+        myAddInfo({kanji_info: 1, dict: 1, rubies: 1});
 }
 
 function myGo() {
@@ -183,16 +153,11 @@ function myBack() {
                               onclick="myBack();"/>
     <input type="button" value="Go!" onclick="myGo();"/><br/>
     <span style="font-size: 70%">
-    <input id="autoadd" type="checkbox">Auto-add kanji info on load</input>
-    <input type="button" value="Add kanji info"
-                              onclick="myAddKanjiInfo();"/>
-    <input type="button" value="Remove kanji info"
-                              onclick="myRemoveKanjiInfo();"/><br/>
-    <input id="autoaddrubies" type="checkbox">Auto-add rubies on load</input>
-    <input type="button" value="Add word info"
-                              onclick="myAddWordInfo({kanji_info: 0, dict: 1, rubies: 1});"/>
-    <input type="button" value="Remove word info"
-                              onclick="myRemoveWordInfo();"/>
+    <input id="autoaddinfo" type="checkbox">Auto-add info on load</input>
+    <input type="button" value="Add info"
+                              onclick="myAddInfo({kanji_info: 1, dict: 1, rubies: 1});"/>
+    <input type="button" value="Remove info"
+                              onclick="myRemoveInfo();"/>
     </span>
 </td></tr></table>
     <div id="showerr"></div>

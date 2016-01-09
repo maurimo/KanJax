@@ -411,44 +411,37 @@ var KanJax = {
 
     // Removes all links, and the text is again put in a text node
     removeKanjiInfo : function(el) {
-        var els, i, text, tN;
-        //var t1, t2;
-        //t1 = new Date().getTime();
-
         el = el || document.body;
+        KanJax.replaceAllWith(el.getElementsByClassName("kanjax"));
+    },
+    
+    replaceAllWith: function(coll, replacement_func) {
+        var els, tN;
 
         // make els an array, and NOT and HTMLCollection.
         // If it is left as HTMLCollection and we iterate while not empty,
         // it will trigger a slow behavior (bug?) in Chrome, and link
         // removal is made very very slow (probably because the whole
         // collection needs to be sorted at each step, or something).
-        els = [].slice.call(el.getElementsByClassName("kanjax"));
-        
-        //t3 = new Date().getTime();
-        //console.log('rm: '+(t3-t1));
+        els = [].slice.call(coll);
 
         for(i = 0; i<els.length; i++) {
-            text = els[i].textContent || els[i].innerText;
-            if(els[i].previousSibling && els[i].previousSibling.nodeType == 3) {
-                if(els[i].nextSibling && els[i].nextSibling.nodeType == 3) {
-                    els[i].previousSibling.data = els[i].previousSibling.data + text + els[i].nextSibling.data;
-                    KanJax.remove(els[i].nextSibling);
-                }
-                else
-                    els[i].previousSibling.data = els[i].previousSibling.data + text;
-                KanJax.remove(els[i]);
+            ch = replacement_func ? replacement_func(els[i])
+                : [].slice.call(els[i].childNodes);
+            if(ch[0].nodeType == 3 &&
+                els[i].previousSibling && els[i].previousSibling.nodeType == 3) {
+                ch[0].data = els[i].previousSibling.data + ch[0].data;
+                KanJax.remove(els[i].previousSibling);
             }
-            else if(els[i].nextSibling && els[i].nextSibling.nodeType == 3) {
-                els[i].nextSibling.data = text + els[i].nextSibling.data;
-                KanJax.remove(els[i]);
+            if(ch[ch.length-1].nodeType == 3 &&
+                els[i].nextSibling && els[i].nextSibling.nodeType == 3) {
+                ch[ch.length-1].data = ch[ch.length-1].data + els[i].nextSibling.data;
+                KanJax.remove(els[i].nextSibling);
             }
-            else {
-                tN = els[i].ownerDocument.createTextNode(text);
-                els[i].parentNode.replaceChild(tN, els[i]);
-            }
+            for(j = 0; j < ch.length; j++)
+                els[i].parentNode.insertBefore(ch[j], els[i]);
+            KanJax.remove(els[i]);
         }
-        //t2 = new Date().getTime();
-        //console.log('r2: '+(t2-t1));
     },
 
     fillFragmentWithKanjiInfo: function(frag, text, inlink, testkanjis) {
@@ -515,106 +508,6 @@ var KanJax = {
 
         t3 = new Date().getTime();
         console.log('t3: '+(t3-t2));
-    },
-    
-    // Looks for all kanjis, and for each sets a link with a click function.
-    addKanjiInfoQ : function(el) {
-        var list, n, islink, parts, i, j, aN, tN, doc;
-        //var t1, t2, t3;
-        t1 = new Date().getTime();
-
-        el = el || document.body;
-        list = KanJax.textNodesUnder(el, true);
-
-        t2 = new Date().getTime();
-        console.log('t2: '+(t2-t1));
-
-        for(i = 0; i<list.length; i++) {
-            n = list[i][0];
-            islink = list[i][1];
-            
-            doc = n.ownerDocument;
-            parts = n.data.split(KanJax.SPLIT_REG);
-
-            if(parts[0].search(KanJax.START_REG) >= 0)
-                parts.unshift('');
-
-            for(j = parts.length-1; j >= 1; j--) {
-                if(parts[j].length > 1) {
-                    tN = doc.createTextNode(parts[j].slice(1));
-                    KanJax.insertAfter(n, tN);
-                }
-
-                aN = doc.createElement("SPAN");
-                aN.className = "kanjax";
-                aN.dataset['kanji'] = parts[j].slice(0,1);
-                //if(!islink) aN.onclick = KanJax.activateKanjiPopup;
-                aN.onmousedown = islink
-                    ? KanJax.activateKanjiPopupMiddle
-                    : KanJax.activateKanjiPopupLeftOrMiddle;
-                tN = doc.createTextNode(parts[j].slice(0,1));
-                aN.appendChild(tN);
-                KanJax.insertAfter(n, aN);
-            }
-
-            if(parts[0].length)
-                n.data = parts[0];
-            else
-                KanJax.remove(n);
-        }
-
-        t3 = new Date().getTime();
-        console.log('t3: '+(t3-t2));
-    },
-    
-    // Looks for all kanjis, and for each sets a link with a click function.
-    addKanjiInfoOld : function(el) {
-        var list, n, islink, parts, i, j, aN, tN, doc;
-        //var t1, t2, t3;
-        //t1 = new Date().getTime();
-
-        el = el || document.body;
-        list = KanJax.textNodesUnder(el, true);
-
-        //t2 = new Date().getTime();
-        //console.log('t2: '+(t2-t1));
-
-        for(i = 0; i<list.length; i++) {
-            n = list[i][0];
-            islink = list[i][1];
-            
-            doc = n.ownerDocument;
-            parts = n.data.split(KanJax.SPLIT_REG);
-
-            if(parts[0].search(KanJax.START_REG) >= 0)
-                parts.unshift('');
-
-            for(j = parts.length-1; j >= 1; j--) {
-                if(parts[j].length > 1) {
-                    tN = doc.createTextNode(parts[j].slice(1));
-                    KanJax.insertAfter(n, tN);
-                }
-
-                aN = doc.createElement("SPAN");
-                aN.className = "kanjax";
-                aN.dataset['kanji'] = parts[j].slice(0,1);
-                //if(!islink) aN.onclick = KanJax.activateKanjiPopup;
-                aN.onmousedown = islink
-                    ? KanJax.activateKanjiPopupMiddle
-                    : KanJax.activateKanjiPopupLeftOrMiddle;
-                tN = doc.createTextNode(parts[j].slice(0,1));
-                aN.appendChild(tN);
-                KanJax.insertAfter(n, aN);
-            }
-
-            if(parts[0].length)
-                n.data = parts[0];
-            else
-                KanJax.remove(n);
-        }
-
-        //t3 = new Date().getTime();
-        //console.log('t3: '+(t3-t2));
     },
 
     findStringIn : function(a, b) {
@@ -1076,14 +969,13 @@ var KanJax = {
         // collection needs to be sorted at each step, or something).
         coll = KanJax.useRubyElement ? el.getElementsByTagName("ruby") :
                     el.getElementsByClassName("kanjax_ruby");
-        els = [].slice.call(coll);
-
-        for(i = 0; i<els.length; i++) {
+        KanJax.replaceAllWith(coll, function(el) {            
+            var rb, ch, chn;
             if(KanJax.useRubyElement) {
-                rb = els[i].getElementsByTagName('RB');
+                rb = el.getElementsByTagName('RB');
                 if(rb.length == 0) {
                     console.log('No RB child in RUBY?');
-                    continue;
+                    return [];
                 }
                 ch = [].slice.call(rb[0].childNodes);
                 for(j = 1; j < rb.length; j++)
@@ -1096,20 +988,22 @@ var KanJax = {
                     if(chn[j].nodeType != 1 || chn[j].className != "kanjax_rt")
                         ch.push(chn[j]);
             }
-            if(ch[0].nodeType == 3 &&
-                els[i].previousSibling && els[i].previousSibling.nodeType == 3) {
-                ch[0].data = els[i].previousSibling.data + ch[0].data;
-                KanJax.remove(els[i].previousSibling);
-            }
-            if(ch[ch.length-1].nodeType == 3 &&
-                els[i].nextSibling && els[i].nextSibling.nodeType == 3) {
-                ch[ch.length-1].data = ch[ch.length-1].data + els[i].nextSibling.data;
-                KanJax.remove(els[i].nextSibling);
-            }
-            for(j = 0; j < ch.length; j++)
-                els[i].parentNode.insertBefore(ch[j], els[i]);
-            KanJax.remove(els[i]);
-        }
+            return ch;
+        });
+        
+        KanJax.replaceAllWith(el.getElementsByClassName("kanjax_lemma"));
+    },
+
+    addInfo : function(el, settings) {
+        if(settings.dict || settings.rubies)
+            KanJax.addWordInfo(el, settings);
+        else
+            KanJax.addKanjiInfo(el);
+    },
+    
+    removeInfo: function(el) {
+        KanJax.removeKanjiInfo(el);
+        KanJax.removeWordInfo(el);
     },
 
     setup : function(el) {
@@ -1136,9 +1030,7 @@ var KanJax = {
         KanJax.setupPopup();
         el = el || document.body;
         KanJax.setup(el);
-        KanJax.addWordInfo(el, { success: function() {
-            //KanJax.addKanjiInfo();
-        }});
+        KanJax.addInfo(el, {kanji_info: 1, dict: 1, rubies: 1});
     },
 
     fullUninstall: function() {
