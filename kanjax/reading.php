@@ -111,7 +111,7 @@ class Processor {
 
     function get_response() {
         $response = fgets($this->pipes[1]);
-        //echo "$response\n";
+       //echo "$response\n";
 
         // test if the program exited unexpectedly, if so somethings is wrong on the server side
         $status = proc_get_status ( $this->process );
@@ -128,7 +128,7 @@ class Processor {
             if(!preg_match(self::ResponseReg[$this->settings], $token, $m))
                 jexit(Array(
                     "status" => "SERVER_ERROR",
-                    "message" => "Can't parse token: <br/>".htmlspecialchars($token)
+                    "message" => "Can't parse token: <br/>" . htmlspecialchars($token)
                 ));
 
             $form8 = $m[1];
@@ -244,7 +244,9 @@ $text = $_POST["text"];
 $text[] = "カリン、自分でまいた種は自分で刈り取[qw]";
 $text[] = 'モーラ、モラ（mora）とは、音韻論上、一定の時間的長さをもった音の分節単位。古典詩における韻律用語であるラテン語のmŏra（モラ）の転用（日本語における「モーラ」という表記は英語からの音訳であり、「モラ」という表記はラテン語からの音訳）。拍（はく）と訳される。';*/
 
-$proc = new Processor(Processor::ReadingsAndLemmas);
+$type = $_POST["dict"] ? $_POST["rubies"] ? Processor::ReadingsAndLemmas
+        : Processor::Lemmas : Processor::Readings;
+$proc = new Processor($type);
 //$proc = new Processor(Processor::Readings);
 $retv = array();
 foreach($text as $v) {

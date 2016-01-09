@@ -27,7 +27,7 @@ var KanJax = {
     // while increasing this limit, keep in mind that each japanese char
     // is expanded to about 9 ascii chars, so, the POST request must allow
     // a request of size at least postJPCharsSoftLimit * 9.
-    postJPCharsSoftLimit: 10000,
+    postJPCharsSoftLimit: 20000,
     
     kanjiPopupTemplate: "Couldn't load popup template.",
 
@@ -45,9 +45,9 @@ var KanJax = {
         }
     })(),
     
-    errorMessage: function(url, xhr) {
+    errorMessage: function(url, xhr, msg) {
         return 'Loading "'+KanJax.html(url)+'": <br/>'+
-            KanJax.html(xhr.status)+' ('+KanJax.html(xhr.statusText)+')';
+            msg + ' - ' + KanJax.html(xhr.status)+' ('+KanJax.html(xhr.statusText)+')';
     },
 
     // inserts into the DOM what is necessary to show the default popup.
@@ -73,7 +73,7 @@ var KanJax = {
                     KanJax.kanjiPopupTemplate = response;
             }).fail(function(xhr, msg) {
                 KanJax.showErrorPopup({ "status": "AJAX_ERROR",
-                    "message": KanJax.errorMessage(url, xhr)
+                    "message": KanJax.errorMessage(url, xhr, msg)
                 });
             });
 
@@ -83,7 +83,7 @@ var KanJax = {
                     KanJax.dictPopupTemplate = response;
             }).fail(function(xhr, msg) {
                 KanJax.showErrorPopup({ "status": "AJAX_ERROR",
-                    "message": KanJax.errorMessage(url, xhr)
+                    "message": KanJax.errorMessage(url, xhr, msg)
                 });
             });
         }
@@ -304,7 +304,7 @@ var KanJax = {
                 },
                 error: function(xhr, msg) {
                     KanJax.showErrorPopup({ "status": "AJAX_ERROR",
-                        "message": KanJax.errorMessage(url, xhr)
+                        "message": KanJax.errorMessage(url, xhr, msg)
                     });
                 }
             });
@@ -451,8 +451,124 @@ var KanJax = {
         //console.log('r2: '+(t2-t1));
     },
 
+    fillFragmentWithKanjiInfo: function(frag, text, inlink, testkanjis) {
+        var parts, j, doc, pj, aN, kj, mpos;
+
+        mpos = text.search(KanJax.KANJI_REG);
+        if(mpos < 0) {
+            if(!testkanjis)
+                frag.appendChild(frag.ownerDocument.createTextNode(text));
+            return false;
+        }
+
+        doc = frag.ownerDocument;
+        parts = text.split(KanJax.SPLIT_REG);
+
+        j = 0;
+        if(mpos > 0) {
+            frag.appendChild(doc.createTextNode(parts[0]));
+            j = 1;
+        }
+
+        for( ; j < parts.length; j++) {
+            pj = parts[j];
+
+            aN = doc.createElement("SPAN");
+            aN.className = "kanjax";
+            kj = pj.slice(0,1);
+            aN.dataset['kanji'] = kj;
+            aN.onmousedown = inlink
+                ? KanJax.activateKanjiPopupMiddle
+                : KanJax.activateKanjiPopupLeftOrMiddle;
+            aN.appendChild(doc.createTextNode(kj));
+            frag.appendChild(aN);
+
+            if(parts[j].length > 1)
+                frag.appendChild(doc.createTextNode(pj.slice(1)));
+        }
+        return true;
+    },
+    
     // Looks for all kanjis, and for each sets a link with a click function.
     addKanjiInfo : function(el) {
+        var list, n, islink, parts, i, j, aN, tN, doc, frag;
+        //var t1, t2, t3;
+        t1 = new Date().getTime();
+
+        el = el || document.body;
+        list = KanJax.textNodesUnder(el, true);
+
+        t2 = new Date().getTime();
+        console.log('t2: '+(t2-t1));
+
+        frag = el.ownerDocument.createDocumentFragment();
+        for(i = 0; i<list.length; i++) {
+            n = list[i][0];
+            islink = list[i][1];
+            
+            doc = n.ownerDocument;
+            if(KanJax.fillFragmentWithKanjiInfo(frag, n.data, islink, true)) {
+                n.parentNode.replaceChild(frag, n);
+                frag = el.ownerDocument.createDocumentFragment();
+            }
+        }
+
+        t3 = new Date().getTime();
+        console.log('t3: '+(t3-t2));
+    },
+    
+    // Looks for all kanjis, and for each sets a link with a click function.
+    addKanjiInfoQ : function(el) {
+        var list, n, islink, parts, i, j, aN, tN, doc;
+        //var t1, t2, t3;
+        t1 = new Date().getTime();
+
+        el = el || document.body;
+        list = KanJax.textNodesUnder(el, true);
+
+        t2 = new Date().getTime();
+        console.log('t2: '+(t2-t1));
+
+        for(i = 0; i<list.length; i++) {
+            n = list[i][0];
+            islink = list[i][1];
+            
+            doc = n.ownerDocument;
+            parts = n.data.split(KanJax.SPLIT_REG);
+
+            if(parts[0].search(KanJax.START_REG) >= 0)
+                parts.unshift('');
+
+            for(j = parts.length-1; j >= 1; j--) {
+                if(parts[j].length > 1) {
+                    tN = doc.createTextNode(parts[j].slice(1));
+                    KanJax.insertAfter(n, tN);
+                }
+
+                aN = doc.createElement("SPAN");
+                aN.className = "kanjax";
+                aN.dataset['kanji'] = parts[j].slice(0,1);
+                //if(!islink) aN.onclick = KanJax.activateKanjiPopup;
+                aN.onmousedown = islink
+                    ? KanJax.activateKanjiPopupMiddle
+                    : KanJax.activateKanjiPopupLeftOrMiddle;
+                tN = doc.createTextNode(parts[j].slice(0,1));
+                aN.appendChild(tN);
+                KanJax.insertAfter(n, aN);
+            }
+
+            if(parts[0].length)
+                n.data = parts[0];
+            else
+                KanJax.remove(n);
+        }
+
+        t3 = new Date().getTime();
+        console.log('t3: '+(t3-t2));
+    },
+    
+    // Looks for all kanjis, and for each sets a link with a click function.
+    addKanjiInfoOld : function(el) {
         var list, n, islink, parts, i, j, aN, tN, doc;
         //var t1, t2, t3;
         //t1 = new Date().getTime();
@@ -646,7 +762,7 @@ var KanJax = {
         });
     },
 
-    addGroupReading : function(group, word_data) {
+    addGroupReading : function(group, word_data, kanji_info) {
         var i, j, node, el, el2, doc, frag, container, word_node, 
             text_to_add, text, is_simple_text, readtext, found, orig, wd, inlink,
             rd_info, rd_string, rd_info_array, ctext;
@@ -682,10 +798,14 @@ var KanJax = {
             // no japanese text, go to the next text node
             if(!found[0]) {
                 text_to_add += text;
-                if(text_to_add)
-                    frag.appendChild(doc.createTextNode(text));
-                group[i][0].parentNode.replaceChild(frag, group[i][0]);
-                
+                if(text_to_add) {
+                    if(kanji_info)
+                        KanJax.fillFragmentWithKanjiInfo(frag, text_to_add, inlink);
+                    else
+                        frag.appendChild(doc.createTextNode(text_to_add));
+                }
+                node.parentNode.replaceChild(frag, node);
+
                 i++;
                 if(i >= group.length)
                     return;
@@ -712,7 +832,10 @@ var KanJax = {
             else {
                 text_to_add += text.substr(0, found[0][0]);
                 if(text_to_add) {
-                    frag.appendChild(doc.createTextNode(text_to_add));
+                    if(kanji_info)
+                        KanJax.fillFragmentWithKanjiInfo(frag, text_to_add, inlink);
+                    else
+                        frag.appendChild(doc.createTextNode(text_to_add));
                     text_to_add = '';
                 }
                 orig = text.substr(found[0][0], found[0][1]-found[0][0]);
@@ -746,7 +869,10 @@ var KanJax = {
 
                         word_node = el2 = doc.createElement("rb");
                         //console.log("3< "+ctext);
-                        el2.appendChild(doc.createTextNode(ctext));
+                        if(kanji_info)    
+                            KanJax.fillFragmentWithKanjiInfo(el2, ctext, inlink);
+                        else
+                            el2.appendChild(doc.createTextNode(ctext));
                         el.appendChild(el2);
 
                         el2 = doc.createElement("rt");
@@ -805,6 +931,14 @@ var KanJax = {
             }
             j++;
         }
+        if(text_to_add) {
+            if(kanji_info)
+                KanJax.fillFragmentWithKanjiInfo(frag, text_to_add, inlink);
+            else
+                frag.appendChild(doc.createTextNode(text_to_add));
+            text_to_add = '';
+        }
+        node.parentNode.replaceChild(frag, node);
     },
     
     display: function(el) {
@@ -833,7 +967,7 @@ var KanJax = {
                 }
                 skipthis = false;
                 //while(["A","B","I","EM","SPAN","FONT",
-                // "STRONG","RUBY","RT","RB"].indexOf(p.tagName) >= 0) {
+                 //   "STRONG","RUBY","RT","RB"].indexOf(p.tagName) >= 0) {
                 while(KanJax.display(p) == 'inline') {
                 //while(p.display == 'inline' || ["A","B","I","EM","SPAN","FONT",
                 // "STRONG","RUBY","RT","RB"].indexOf(p.tagName) >= 0) {
@@ -853,10 +987,8 @@ var KanJax = {
                     totstr += currstr.length + 3;
                     strings.push(currstr);
                     groups.push(currgr);
-                    if(totstr > KanJax.postJPCharsSoftLimit) {
-                        //console.log('totstr: '+totstr);
+                    if(totstr > KanJax.postJPCharsSoftLimit)
                         break;
-                    }
                 }
                 skipgroup = false;
                 currstr = '';
@@ -878,24 +1010,33 @@ var KanJax = {
         }
 
         url = encodeURI(KanJax.basePath + "reading.php");
+        var req_start = new Date().getTime();
         $.ajax({
             type: "POST",
-            data: { text : strings },
+            data: {
+                text: strings,
+                dict: state.settings.dict ? 1 : 0,
+                rubies: state.settings.rubies ? 1 : 0
+            },
             url: url,
             success: function(result) {
                 var i;
                 var t1;
                 t1 = new Date().getTime();
+                console.log('reqtm: '+(t1-req_start));
                 if(result.status == "OK") {
                     console.log('Wall time: ' + result.wall_time);
                     console.log('CPU time: ' + result.cpu_time);
                     for(i = 0; i < groups.length; ++i)
-                        KanJax.addGroupReading(groups[i], result.data[i]);
+                        KanJax.addGroupReading(groups[i],
+                                               result.data[i],
+                                               state.settings.kanji_info);
                     t3 = new Date().getTime();
                     console.log('step1: '+(t3-t1));
                     KanJax.addWordInfoStep(state);
                     t2 = new Date().getTime();
                     console.log('step2: '+(t2-t1));
+                    console.log('begin: '+(t2-state.start_time));
                 }
                 else {
                     KanJax.showErrorPopup(result);  
@@ -996,7 +1137,7 @@ var KanJax = {
         el = el || document.body;
         KanJax.setup(el);
         KanJax.addWordInfo(el, { success: function() {
-            KanJax.addKanjiInfo();
+            //KanJax.addKanjiInfo();
         }});
     },
 
