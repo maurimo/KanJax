@@ -646,11 +646,11 @@ var KanJax = {
         });
     },
 
-    addGroupReading : function(group, reading) {
-        var i, j, text_to_add, text, added_elements, has_text_to_add, 
-            is_simple_text, readtext, found, orig, node, el, el2, rj, inlink,
-            old_node, container, lnode, rinfo, rstring, rinfo_array, ctext;
-        
+    addGroupReading : function(group, word_data) {
+        var i, j, node, el, el2, doc, frag, container, word_node, 
+            text_to_add, text, is_simple_text, readtext, found, orig, wd, inlink,
+            rd_info, rd_string, rd_info_array, ctext;
+
         for(i = 0; i<group.length; ++i) {
             if(!group[i][0].parentNode) {
                 console.log("ELEMENT REMOVED!! bailing out...");
@@ -663,16 +663,16 @@ var KanJax = {
 
         //text we skipped over, with no reading to add, to be added in the dom.
         text_to_add = '';
-        added_elements = false;
         node = group[i][0];
         inlink = group[i][1];
         text = node.data;
-        //console.log('ntext: '+text);
+        doc = node.ownerDocument;
+        frag = doc.createDocumentFragment();
 
-        while(j < reading.length) {
-            rj = reading[j];
-            is_simple_text = (typeof(rj)=='string');
-            readtext = is_simple_text ? rj : rj.f;
+        while(j < word_data.length) {
+            wd = word_data[j];
+            is_simple_text = (typeof(wd)=='string');
+            readtext = is_simple_text ? wd : wd.f;
 
             found = KanJax.findStringIn(text, readtext);
 
@@ -682,18 +682,17 @@ var KanJax = {
             // no japanese text, go to the next text node
             if(!found[0]) {
                 text_to_add += text;
-                if(text_to_add) {
-                    //console.log("T1: " + text_to_add);
-                    if(added_elements)
-                        node = KanJax.appendText(text_to_add, node);
-                    // else, the text was entirely skipped!
-                }
-                text_to_add = '';
+                if(text_to_add)
+                    frag.appendChild(doc.createTextNode(text));
+                group[i][0].parentNode.replaceChild(frag, group[i][0]);
+                
                 i++;
                 if(i >= group.length)
                     return;
-                added_elements = false;
+                text_to_add = '';
                 node = group[i][0];
+                doc = node.ownerDocument;
+                frag = doc.createDocumentFragment();
                 inlink = group[i][1];
                 text = node.data;
                 continue;
@@ -712,110 +711,86 @@ var KanJax = {
             }
             else {
                 text_to_add += text.substr(0, found[0][0]);
-                has_text_to_add = !!text_to_add;
-                if(has_text_to_add) {
-                    //console.log("T2: " + text_to_add);
-                    if(node == group[i][0])
-                        added_beginning = true;
-                    if(added_elements)
-                        node = KanJax.appendText(text_to_add, node);
-                    else
-                        node.data = text_to_add;
+                if(text_to_add) {
+                    frag.appendChild(doc.createTextNode(text_to_add));
                     text_to_add = '';
                 }
                 orig = text.substr(found[0][0], found[0][1]-found[0][0]);
-                //console.log("R: " + orig);
-                //console.log(reading[j]);
 
-                old_node = node;
-                doc = node.ownerDocument;
-
-                rinfo = rj.r;
-                rinfo_array = rinfo && (rinfo.constructor.name == 'Array');
-                if(rinfo_array) {
-                    if(rinfo[2] > orig.length)
-                        rinfo[2] = orig.length
-                    if(rinfo[1] >= rinfo[2])
-                        rinfo[1] = rinfo[2]-1;
-                    if(rinfo[1] == 0 && rinfo[2] == orig.length) {
-                        rinfo = rinfo[0];
-                        rinfo_array = false;
+                rd_info = wd.r;
+                rd_info_array = rd_info && (rd_info.constructor.name == 'Array');
+                if(rd_info_array) {
+                    if(rd_info[2] > orig.length)
+                        rd_info[2] = orig.length
+                    if(rd_info[1] >= rd_info[2])
+                        rd_info[1] = rd_info[2]-1;
+                    if(rd_info[1] == 0 && rd_info[2] == orig.length) {
+                        rd_info = rd_info[0];
+                        rd_info_array = false;
                     }
                 }
-                if(!rinfo || rinfo_array) {
-                    //console.log('newcont');
+                if(!rd_info || rd_info_array) {
                     container = doc.createElement("span");
-                    if(!rinfo) {
-                        //console.log("1< "+orig);
+                    if(!rd_info)
                         container.appendChild(doc.createTextNode(orig));
-                    }
-                    else if(rinfo[1] > 0) {
-                        //console.log("2< "+rinfo[1]);
-                        container.appendChild(doc.createTextNode(orig.substr(0,rinfo[1])));
-                    }
+                    else if(rd_info[1] > 0)
+                        container.appendChild(doc.createTextNode(orig.substr(0,rd_info[1])));
                 }
 
-                rstring = rinfo_array ? rinfo[0] : rinfo;
-                if(rstring) {
-                    ctext = rinfo_array ? orig.substr(rinfo[1], rinfo[2]-rinfo[1]) : orig;
-                    //console.log('ruby');
+                rd_string = rd_info_array ? rd_info[0] : rd_info;
+                if(rd_string) {
+                    ctext = rd_info_array ? orig.substr(rd_info[1], rd_info[2]-rd_info[1]) : orig;
+
                     if(KanJax.useRubyElement) {
                         el = doc.createElement("ruby");
 
-                        lnode = el2 = doc.createElement("rb");
+                        word_node = el2 = doc.createElement("rb");
                         //console.log("3< "+ctext);
                         el2.appendChild(doc.createTextNode(ctext));
                         el.appendChild(el2);
 
                         el2 = doc.createElement("rt");
-                        el2.appendChild(doc.createTextNode(rstring));
+                        el2.appendChild(doc.createTextNode(rd_string));
                         el.appendChild(el2);
 
                     }
                     else {
                         el2 = doc.createElement("span");
                         el2.className = "kanjax_rt";
-                        el2.appendChild(doc.createTextNode(rstring));
+                        el2.appendChild(doc.createTextNode(rd_string));
                         
-                        lnode = el = doc.createElement("span");
+                        word_node = el = doc.createElement("span");
                         el.className = "kanjax_ruby";
                         el.appendChild(el2);
                         el.appendChild(doc.createTextNode(ctext));
                     }
                 }
 
-                if(!rinfo || rinfo_array) {
-                    if(rstring)
+                if(!rd_info || rd_info_array) {
+                    if(rd_string)
                         container.appendChild(el);
-                    if(rinfo && rinfo[2] < orig.length) {
-                        //console.log("5< "+orig.substr(rinfo[2]));
-                        container.appendChild(doc.createTextNode(orig.substr(rinfo[2])));
-                    }
-                    KanJax.insertAfter(node, container);
-                    node = container;
-                    lnode = container;
+                    if(rd_info && rd_info[2] < orig.length)
+                        container.appendChild(doc.createTextNode(orig.substr(rd_info[2])));
+                    frag.appendChild(container);
+                    word_node = container;
                 }
-                else {
-                    KanJax.insertAfter(node, el);
-                    node = el;
-                }
-                if(rj.l) {
-                    if(lnode.className)
-                        lnode.className += ' kanjax_lemma';
+                else
+                    frag.appendChild(el);
+                if(wd.l) {
+                    if(word_node.className)
+                        word_node.className += ' kanjax_lemma';
                     else
-                        lnode.className = 'kanjax_lemma';
-                    lnode.dataset['lemma'] = rj.l;
-                    lnode.dataset['pos'] = rj.p;
-                    lnode.onmousedown = inlink
+                        word_node.className = 'kanjax_lemma';
+                    word_node.dataset['lemma'] = wd.l;
+                    word_node.dataset['pos'] = wd.p;
+                    word_node.onmousedown = inlink
                         ? KanJax.activateDictPopupMiddle
                         : KanJax.activateDictPopupLeftOrMiddle;
                 }
-
-                if(!has_text_to_add && !added_elements)
-                    KanJax.remove(old_node);
-                added_elements = true;
             }
-            text = text.substr(found[0][1]); // new text removing what we saw
+
+            // new text removing what we saw
+            text = text.substr(found[0][1]);
 
             // if the element was not containing the whole read text, add the
             // reamining part as simple text in the j+1-th position, so it will be skipped
@@ -823,19 +798,12 @@ var KanJax = {
             // but will happen only if you break a word putting part of it in a link, etc.
             if(found[1][1] < readtext.length) {
                 if(is_simple_text)
-                    reading[j] = readtext.substr(0, found[1][1]);
+                    word_data[j] = readtext.substr(0, found[1][1]);
                 else
-                    reading[j][0] = readtext.substr(0, found[1][1]);
-                reading.splice(j+1, 0, readtext.substr(found[1][1]));
-                //console.log("NEW: "+reading);
+                    word_data[j][0] = readtext.substr(0, found[1][1]);
+                word_data.splice(j+1, 0, readtext.substr(found[1][1]));
             }
             j++;
-        }
-        if(text_to_add) {
-            //console.log("T3: "+text_to_add);
-            if(added_elements)
-                node = KanJax.appendText(text_to_add, node);
-            // else, the text was entirely skipped!
         }
     },
     
