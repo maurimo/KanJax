@@ -1,8 +1,5 @@
 {{%entries}}
 <span class="main">{{main:furigana}}</span>
-{{%othf}}{{#FIRST}}<span class="othf">Other forms: {{/FIRST}}
-{{THIS:furigana}}{{#NOT_LAST}}、{{/NOT_LAST}}{{#LAST}}</span>{{/LAST}}
-{{/othf}}
 <ol>
 {{%senses}}
 {{#pos}}<div class="pos">{{pos}}</div>{{/pos}}<li><span>{{gloss}}{{#misc}}
@@ -10,4 +7,8 @@
 <span class="refs">See also {{refs:furigana}}</span>{{/refs}}</span></li>
 {{/senses}}
 </ol>
+{{%othf}}{{#FIRST}}<span class="othf">Other forms: {{/FIRST}}
+{{THIS:furigana}}{{#NOT_LAST}}、{{/NOT_LAST}}{{#LAST}}</span>{{/LAST}}
+{{/othf}}
+{{#NOT_LAST}}<br><br>{{/NOT_LAST}}
 {{/entries}}

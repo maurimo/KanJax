@@ -5,12 +5,12 @@ require 'sqlite3'
 require 'nokogiri'
 
 F_KANJI=1
-#F_KEYWORD=2
-#F_MEANING=3
-#F_DESC=4
-F_KEYWORD=8
-F_MEANING=7
-F_DESC=16
+F_KEYWORD=2
+F_MEANING=3
+F_DESC=4
+#F_KEYWORD=8
+#F_MEANING=7
+#F_DESC=16
 F_STROKES=11
 F_ONYOMI=22
 F_KUNYOMI=23
@@ -25,7 +25,12 @@ end
 
 if ARGV.length < 2 then
 puts <<EOF
-Usage: ./create_db.rb tabbed_text_file.txt sqlite.db [images_origin_dir] [images_dest_dir]
+From a tabbed text file (anki export), creates a db. Optionally copies
+the referenced images from one dir into a n image dir. Make sure you
+edited the script so that the column (field) indexes matches the columns
+of your anki file.
+
+Usage: #{File.basename($0)} tabbed_text_file.txt sqlite.db [images_origin_dir] [images_dest_dir]
 EOF
 exit
 end
@@ -71,7 +76,3 @@ File.open(ARGV[0]).each_line.each_with_index{ |l, i|
 }
 db.commit
 
-# Find a few rows
-db.execute( "SELECT * FROM KanjiInfo WHERE kanji = ?", '料') do |row|
-  p row
-end

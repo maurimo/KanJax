@@ -1,6 +1,12 @@
 #!/usr/bin/env ruby
 # coding: utf-8
 
+# Regenerates the static template (after editing the template),
+# the can be loaded locally via hidden-iframe trick.
+#
+# Run from main dir as
+#   scrips/update_static_template.rb
+
 require 'json'
 
 orig = 'kanjax/kanjax_popup_template.html'

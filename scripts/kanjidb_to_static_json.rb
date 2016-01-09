@@ -7,7 +7,12 @@ require 'open-uri'
 
 if ARGV.length < 2 then
 puts <<EOF
-Usage: ./db_to_json.rb sqlite.db target_dirctory
+Export the database into a directory of .html files containing json,
+that can be loaded via the hidden-iframe trick. Creates a (read-only)
+data set that can be used locally (no web server, nor php necessary,
+and allows for instance to use KanJax in Anki's cards.
+
+Usage: #{File.basename($0)} sqlite.db target_dirctory
 EOF
 exit
 

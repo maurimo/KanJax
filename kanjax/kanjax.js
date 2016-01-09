@@ -580,6 +580,8 @@ var KanJax = {
                 if(!(key in obj))
                     return "{unknown field "+key+"}";
                 val = obj[key];
+                console.log(key)
+                console.log(val)
                 if(flags == 'furigana')
                     val = val.replace(/\[(\S+)\|(\S+)\]/g, function(m,k,r) {
                         return '<ruby><rb>'+k+'</rb><rt>'+r+'</rt></ruby>';
@@ -592,6 +594,9 @@ var KanJax = {
         var div, exp;
 
         div = document.getElementById("kanjax_popup");
+        info = info.sort(function(a,b) {
+            return a.cm < b.cm;
+        });
         exp = KanJax.expandTemplate(KanJax.dictPopupContent, {entries: info});
         console.log(exp);
         div.innerHTML = exp;

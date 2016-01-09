@@ -50,9 +50,11 @@ def process(el)
     el.find('./k_ele').each{ |k_ele|
         keb = k_ele.find('./keb')[0].content
         kebs.push(keb)
-        pris = el.find('./ke_pri').collect{ |pri| pri.content }
+        pris = k_ele.find('./ke_pri').collect{ |pri| pri.content }
+        #puts 'pris:'+pris.inspect
         hkebs.push(keb) unless (HPRI & pris).empty?
     }
+    #puts 'hk:'+hkebs.inspect
     rebs = []
     hrebs = []
     wrrd = []
@@ -60,7 +62,7 @@ def process(el)
         reb = r_ele.find('./reb')[0].content
         rebs.push(reb)
 
-        pris = el.find('./re_pri').collect{ |pri| pri.content }
+        pris = r_ele.find('./re_pri').collect{ |pri| pri.content }
         hrebs.push(reb) unless (HPRI & pris).empty?
 
         kwritings = r_ele.find('./re_restr').collect{|x| x.content}
@@ -73,7 +75,7 @@ def process(el)
         end
     }
     if kebs.empty? then
-        mainform = hrebs.empty? ? rebs[0] : hrebs[1]
+        mainform = hrebs.empty? ? rebs[0] : hrebs[0]
     else
         #puts wrrd.inspect
         candidates = wrrd
@@ -109,6 +111,7 @@ def process(el)
 
     if false then
         puts 'id............: '+id
+        puts 'iscommon......: '+iscommon.to_s
         puts 'mainform......: '+mainform
         puts 'kanji forms...: '+kebs.inspect
         puts 'kana forms....: '+rebs.inspect
@@ -128,9 +131,19 @@ def process(el)
     return retv
 end
 
+if ARGV.length < 2 then
+puts <<EOF
+Imports the JMdict file into a database. Currently only imports the
+english definitions, it should be straighforward editing it import another
+language.
+
+Usage: #{File.basename($0)} jmdict.xml sqlite.db
+EOF
+exit
+end
 
 puts 'creating db...'
-db = SQLite3::Database.new 'dict.db'
+db = SQLite3::Database.new ARGV[1]
 
 rows = db.execute <<-SQL
   CREATE TABLE Words (
@@ -149,12 +162,13 @@ SQL
 #puts db.execute("SELECT name FROM sqlite_master WHERE type='table';").inspect
 
 puts 'loading xml file...'
-parser = LibXML::XML::Parser.file('../JMdict_e')
+parser = LibXML::XML::Parser.file(ARGV[0])
 doc = parser.parse()
 
 #el = doc.find('//entry').to_a[19222]
 #el = doc.find('//entry').to_a[55112]
 #process(el)
+#exit
 
 tot_entries = doc.find('//entry').count
 
