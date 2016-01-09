@@ -1,0 +1,88 @@
+.kanji_popup, .error_popup {
+  width:         640px;
+  background-color: #e0e0ff;
+  border:        1px solid #ffffff;
+  padding:       12px;
+  border-radius: 17px;
+  text-align:    center;
+}
+.kanji_popup div, .kanji_popup span, .kanji_popup td {
+  cursor: default;
+}
+.kanji_popup .editable:hover {
+  background-color: white;
+}
+.kanji_popup input{
+  font-weight: inherit;
+  font-family: inherit;
+  font-style:  inherit;
+  font-size:   80%;
+  word-break:  break-word;
+}
+.kanji_popup #strokes {
+  max-width: 640px;
+  max-height: 85px;
+}
+.kanji_popup #onyomi, .kanji_popup #kunyomi {
+  font-style: normal;
+}
+.kanji_popup #kanji {
+  margin-right: 0.6em;
+}
+.kanji_popup #keyword {
+  margin-left: 0.6em;
+}
+.kanji_popup #yomi, .kanji_popup #strokes {
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
+}
+.kanji_popup .japanese { font-family: "Kochi Mincho"; }
+.kanji_popup .small {font-size: 15px;}
+.kanji_popup .medium {font-size: 19px;}
+.kanji_popup .large {font-size: 24px;}
+.kanji_popup .huge {font-size: 40px;}
+.kanji_popup .bold {font-weight: bold;}
+.kanji_popup .italic {font-style: italic;}
+
+.dict_popup {
+  max-height:    400px;
+  overflow:      auto;
+  width:         640px;
+  background-color: #e0e0ff;
+  border:        1px solid #ffffff;
+  padding:       12px;
+  border-radius: 17px;
+  text-align:    left;
+}
+.dict_popup .main {
+  font-size: 160%;
+}
+.dict_popup .othf {
+  color: #555;
+  font-size: 70%;
+}
+.dict_popup .pos {
+  color: #800;
+  font-size: 70%;
+  font-style: italic;
+  margin-top: 0.5em;
+  margin-left: -1.2em;
+}
+.dict_popup .misc {
+  color: #555;
+  font-size: 70%;
+}
+.dict_popup .refs {
+  color: #555;
+  font-size: 70%;
+}
+.dict_popup ol {
+  margin-top: 0.3em;
+  margin-bottom: 0.3em;
+}
+.dict_popup li {
+  color: #345;
+}
+.dict_popup li span {
+  color: black;
+}

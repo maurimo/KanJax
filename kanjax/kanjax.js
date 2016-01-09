@@ -27,11 +27,11 @@ var KanJax = {
     // while increasing this limit, keep in mind that each japanese char
     // is expanded to about 9 ascii chars, so, the POST request must allow
     // a request of size at least postJPCharsSoftLimit * 9.
-    postJPCharsSoftLimit: 5000,
+    postJPCharsSoftLimit: 20000,
     
-    popupContent: "Couldn't load popup template.",
+    kanjiPopupTemplate: "Couldn't load popup template.",
 
-    popupCache: {
+    kanjiPopupCache: {
     },
     
     html: (function(){
@@ -45,9 +45,9 @@ var KanJax = {
         }
     })(),
     
-    errorMessage: function(url, xhr) {
+    errorMessage: function(url, xhr, msg) {
         return 'Loading "'+KanJax.html(url)+'": <br/>'+
-            KanJax.html(xhr.status)+' ('+KanJax.html(xhr.statusText)+')';
+            msg + ' - ' + KanJax.html(xhr.status)+' ('+KanJax.html(xhr.statusText)+')';
     },
 
     // inserts into the DOM what is necessary to show the default popup.
@@ -55,23 +55,35 @@ var KanJax = {
         var div, style, url;
 
         // load the template, if loading local data just put here a static version
-        if(KanJax.loadStaticJSON)
+        if(KanJax.loadStaticJSON) {
             KanJax.iframeRequest(
-                KanJax.basePath + "kanjax_popup_template.static.html",
+                KanJax.basePath + "kanji_popup_template.static.html",
                 function(result) {
                     if(result.status == "OK")
-                        KanJax.popupContent = result.data;
+                        KanJax.kanjiPopupTemplate = result.data;
                     else
                         KanJax.showErrorPopup(result);
                 });
+            //dictionary and furigana are not supported in the static case
+        }
         else {
-            url = KanJax.basePath + "kanjax_popup_template.html";
+            url = KanJax.basePath + "kanji_popup_template.html";
             $.get(url,
                 function(response) {
-                    KanJax.popupContent = response;
+                    KanJax.kanjiPopupTemplate = response;
             }).fail(function(xhr, msg) {
                 KanJax.showErrorPopup({ "status": "AJAX_ERROR",
-                    "message": KanJax.errorMessage(url, xhr)
+                    "message": KanJax.errorMessage(url, xhr, msg)
+                });
+            });
+
+            url = KanJax.basePath + "dict_popup_template.html";
+            $.get(url,
+                function(response) {
+                    KanJax.dictPopupTemplate = response;
+            }).fail(function(xhr, msg) {
+                KanJax.showErrorPopup({ "status": "AJAX_ERROR",
+                    "message": KanJax.errorMessage(url, xhr, msg)
                 });
             });
         }
@@ -82,7 +94,7 @@ var KanJax = {
             style.id = "kanjax_style";
             style.setAttribute("rel", "stylesheet");
             style.setAttribute("type", "text/css");
-            style.setAttribute("href", KanJax.basePath + "kanjax_popup.css");
+            style.setAttribute("href", KanJax.basePath + "popup.css");
             document.head.appendChild(style);
         }
 
@@ -105,22 +117,37 @@ var KanJax = {
             KanJax.remove(el);
     },
 
+    makePopupVisible: function(div) {
+        $(div).find('img').load(function() {
+            var x,y;
+            y = document.body.scrollTop + (window.innerHeight - $(div).outerHeight()) / 2;
+            x = document.body.scrollLeft + (window.innerWidth - $(div).outerWidth()) / 2;
+            $(div).css({left: x, top: y});
+        });
+        $(div).css({
+            position: "absolute", display: 'block', visibility: 'hidden',
+            marginLeft: 0, marginTop: 0, top: 0, left: 0
+        });
+        setTimeout(function() {
+            var x, y;
+            y = (window.innerHeight - $(div).outerHeight()) / 2;
+            x = (window.innerWidth - $(div).outerWidth()) / 2;
+            if(typeof(KanJax.forcePopupPositionX)=='number')
+                x = KanJax.forcePopupPositionX;
+            if(typeof(KanJax.forcePopupPositionY)=='number')
+                y = KanJax.forcePopupPositionY;
+            $(div).css({ display: 'none', visibility: 'visible' });
+            KanJax.bPopup = $(div).bPopup({ speed: 120, position: [x, y] });
+        }, 10);        
+    },
+    
     // shows the popup
-    showPopup: function(info, kanji) {
-        var div, k, content, x, y, url;
-        //console.log('showPop');
+    showKanjiPopup: function(info, kanji) {
+        var div, content, url;
+
         div = document.getElementById("kanjax_popup");
-        content = KanJax.popupContent.replace(
-                /\{\{(\w+)\}\}/g,
-            function(match, key) {
-                if(key in info)
-                    return info[key]
-                else if(key == 'KANJAX_BASEPATH')
-                    return KanJax.basePath;
-                else
-                    return "{unknown field "+key+"}";
-            });
-        div.innerHTML = content;
+        div.innerHTML = KanJax.expandTemplate(
+            KanJax.kanjiPopupTemplate, info);
 
         // it not loading static local data, allow editing
         // for fields having "editable" class, the innerHTML will be edited.
@@ -128,14 +155,15 @@ var KanJax = {
             url = encodeURI(KanJax.basePath + "data.php?kanji=" + kanji);
             $("#kanjax_popup .editable").editable(url, {
                 id        : "key",
-                indicator : "<img style='height:1.15em' src='"+KanJax.basePath+"indicator.gif'>",
+                indicator : "<img style='height:1.15em' src='"+
+                                    KanJax.basePath+"indicator.gif'>",
                 tooltip   : "Click to edit...",
                 style     : "display: inline; margin: 0px;",
                 callback  : function(response, settings) {
                     response = $.parseJSON(response);
                     if(response.status == "OK") {
-                        if(kanji in KanJax.popupCache)
-                            KanJax.popupCache[kanji][response.key] = response.value;
+                        if(kanji in KanJax.kanjiPopupCache)
+                            KanJax.kanjiPopupCache[kanji][response.key] = response.value;
                         $(this).html(response.value);
                     }
                     else {
@@ -151,32 +179,9 @@ var KanJax = {
                 }
             });
         }
-        
-        if(!(typeof(KanJax.forcePopupPositionY)=='number')) {
-            $(div).find('img').load(function() {
-                var x,y;
-                y = document.body.scrollTop + (window.innerHeight - $(div).outerHeight()) / 2;
-                x = document.body.scrollLeft + (window.innerWidth - $(div).outerWidth()) / 2;
-                //console.log('new: '+x+', '+y);
-                $(div).css({left: x, top: y});
-            });
-        }
-        $(div).css({
-            position: "absolute", display: 'block', visibility: 'hidden',
-            marginLeft: 0, marginTop: 0, top: 0, left: 0
-        });
-        setTimeout(function(){
-            var x, y;
-            y = (window.innerHeight - $(div).outerHeight()) / 2;
-            x = (window.innerWidth - $(div).outerWidth()) / 2;
-            if(typeof(KanJax.forcePopupPositionX)=='number')
-                x = KanJax.forcePopupPositionX;
-            if(typeof(KanJax.forcePopupPositionY)=='number')
-                y = KanJax.forcePopupPositionY;
-            //console.log('base: '+x+', '+y);
-            $(div).css({ display: 'none', visibility: 'visible' });
-            KanJax.bPopup = $(div).bPopup({ speed: 120, position: [x, y] });
-        }, 10);
+
+        div.className = 'kanji_popup';
+        KanJax.makePopupVisible(div);
     },
 
     // show the popup, displaying an error message
@@ -188,22 +193,8 @@ var KanJax = {
         if(info.message)
             content += "<br/>" + info.message;
         div.innerHTML = content;
-        $(div).css({
-            position: "absolute", display: 'block', visibility: 'hidden',
-            marginLeft: 0, marginTop: 0, top: 0, left: 0
-        });
-        setTimeout(function(){
-            var x, y;
-            y = (window.innerHeight - $(div).outerHeight()) / 2;
-            x = (window.innerWidth - $(div).outerWidth()) / 2;
-            if(typeof(KanJax.forcePopupPositionX)=='number')
-                x = KanJax.forcePopupPositionX;
-            if(typeof(KanJax.forcePopupPositionY)=='number')
-                y = KanJax.forcePopupPositionY;
-            //console.log('err: '+x+', '+y);
-            $(div).css({ display: 'none', visibility: 'visible' });
-            $(div).bPopup({ speed: 120, position: [x, y] });
-        }, 10);
+        div.className = 'error_popup';
+        KanJax.makePopupVisible(div);
     },
     
     resetIframeRequest: function() {
@@ -258,33 +249,31 @@ var KanJax = {
         document.body.appendChild(i);
     },
 
-    activatePopupMiddle: function(e) {
+    activateKanjiPopupMiddle: function(e) {
         if((e.type == "mousedown") && e.which != 2)
             return true;
-        return KanJax.activatePopup(e);
+        return KanJax.activateKanjiPopup(e);
     },
 
-    activatePopupLeftOrMiddle: function(e) {
+    activateKanjiPopupLeftOrMiddle: function(e) {
         if((e.type == "mousedown") && e.which != 2 && e.which != 1)
             return true;
-        return KanJax.activatePopup(e);
+        return KanJax.activateKanjiPopup(e);
     },
         
     // default click handler, uses jQuery + bPopup to show a nice popup
-    activatePopup: function(e) {
+    activateKanjiPopup: function(e) {
         var kanji, info, img, w, url, i, messageHandler;
 
-        //if((e.type == "mousedown") && e.which != 2)
-        //    return true;
-
         e.preventDefault();
+        e.stopPropagation();
         kanji = e.currentTarget.textContent || e.currentTarget.innerText;
 
         // test cache
-        if(kanji in KanJax.popupCache) {
+        if(kanji in KanJax.kanjiPopupCache) {
             if(KanJax.loadStaticJSON)
                 KanJax.resetIframeRequest();
-            KanJax.showPopup(KanJax.popupCache[kanji], kanji);
+            KanJax.showKanjiPopup(KanJax.kanjiPopupCache[kanji], kanji);
             return false;
         }
 
@@ -294,8 +283,8 @@ var KanJax = {
                 encodeURI(KanJax.basePath + "static_data/" + kanji.charCodeAt(0) + ".html"),
                 function(result) {
                     if(result.status == "OK") {
-                        KanJax.popupCache[kanji] = result.data;
-                        KanJax.showPopup(result.data, kanji);
+                        KanJax.kanjiPopupCache[kanji] = result.data;
+                        KanJax.showKanjiPopup(result.data, kanji);
                     }
                     else
                         KanJax.showErrorPopup(result);
@@ -307,15 +296,15 @@ var KanJax = {
                 url: url,
                 success: function(result) {
                     if(result.status == "OK") {
-                        KanJax.popupCache[kanji] = result.data;
-                        KanJax.showPopup(result.data, kanji);
+                        KanJax.kanjiPopupCache[kanji] = result.data;
+                        KanJax.showKanjiPopup(result.data, kanji);
                     }
                     else
                         KanJax.showErrorPopup(result);
                 },
                 error: function(xhr, msg) {
                     KanJax.showErrorPopup({ "status": "AJAX_ERROR",
-                        "message": KanJax.errorMessage(url, xhr)
+                        "message": KanJax.errorMessage(url, xhr, msg)
                     });
                 }
             });
@@ -421,386 +410,24 @@ var KanJax = {
     },
 
     // Removes all links, and the text is again put in a text node
-    removeLinks : function(el) {
-        var els, i, text, tN;
-        //var t1, t2;
-        //t1 = new Date().getTime();
-
+    removeKanjiInfo : function(el) {
         el = el || document.body;
+        KanJax.replaceAllWith(el.getElementsByClassName("kanjax"));
+    },
+    
+    replaceAllWith: function(coll, replacement_func) {
+        var els, tN;
 
         // make els an array, and NOT and HTMLCollection.
         // If it is left as HTMLCollection and we iterate while not empty,
         // it will trigger a slow behavior (bug?) in Chrome, and link
         // removal is made very very slow (probably because the whole
         // collection needs to be sorted at each step, or something).
-        els = [].slice.call(el.getElementsByClassName("kanjax"));
-        
-        //t3 = new Date().getTime();
-        //console.log('rm: '+(t3-t1));
-
-        for(i = 0; i<els.length; i++) {
-            text = els[i].textContent || els[i].innerText;
-            if(els[i].previousSibling && els[i].previousSibling.nodeType == 3) {
-                if(els[i].nextSibling && els[i].nextSibling.nodeType == 3) {
-                    els[i].previousSibling.data = els[i].previousSibling.data + text + els[i].nextSibling.data;
-                    KanJax.remove(els[i].nextSibling);
-                }
-                else
-                    els[i].previousSibling.data = els[i].previousSibling.data + text;
-                KanJax.remove(els[i]);
-            }
-            else if(els[i].nextSibling && els[i].nextSibling.nodeType == 3) {
-                els[i].nextSibling.data = text + els[i].nextSibling.data;
-                KanJax.remove(els[i]);
-            }
-            else {
-                tN = els[i].ownerDocument.createTextNode(text);
-                els[i].parentNode.replaceChild(tN, els[i]);
-            }
-        }
-        //t2 = new Date().getTime();
-        //console.log('r2: '+(t2-t1));
-    },
-
-    // Looks for all kanjis, and for each sets a link with a click function.
-    addLinks : function(el) {
-        var list, n, islink, parts, i, j, aN, tN, doc;
-        //var t1, t2, t3;
-        //t1 = new Date().getTime();
-
-        el = el || document.body;
-        list = KanJax.textNodesUnder(el, true);
-
-        //t2 = new Date().getTime();
-        //console.log('t2: '+(t2-t1));
-
-        for(i = 0; i<list.length; i++) {
-            n = list[i][0];
-            islink = list[i][1];
-            
-            doc = n.ownerDocument;
-            parts = n.data.split(KanJax.SPLIT_REG);
-
-            if(parts[0].search(KanJax.START_REG) >= 0)
-                parts.unshift('');
-
-            for(j = parts.length-1; j >= 1; j--) {
-                if(parts[j].length > 1) {
-                    tN = doc.createTextNode(parts[j].slice(1));
-                    KanJax.insertAfter(n, tN);
-                }
-
-                aN = doc.createElement("SPAN");
-                aN.className = "kanjax";
-                //if(!islink) aN.onclick = KanJax.activatePopup;
-                aN.onmousedown = islink ? KanJax.activatePopupMiddle : KanJax.activatePopupLeftOrMiddle;
-                tN = doc.createTextNode(parts[j].slice(0,1));
-                aN.appendChild(tN);
-                KanJax.insertAfter(n, aN);
-            }
-
-            if(parts[0].length)
-                n.data = parts[0];
-            else
-                KanJax.remove(n);
-        }
-
-        //t3 = new Date().getTime();
-        //console.log('t3: '+(t3-t2));
-    },
-
-    findStringIn : function(a, b) {
-        var i, j, start_a, start_b, new_a, new_b;
-        i = start_a = a.regexIndexOf(KanJax.JP_REG, 0);
-        if(i < 0)
-            return [false, [0,0]];
-        j = start_b = b.regexIndexOf(KanJax.JP_REG, 0);
-        if(j < 0)
-            return [[i,i], false];
-        while(true) {
-            if(a[i] != b[j])
-                console.log('Mismatch: "'+a[i]+'" != "'+b[j]+'"');
-            if(i+1 >= a.length || j+1 >= b.length)
-                return [[start_a, i+1], [start_b, j+1]];
-            new_a = a.regexIndexOf(KanJax.JP_REG, i + 1);
-            new_b = b.regexIndexOf(KanJax.JP_REG, j + 1);
-            if(new_a < 0 || new_b < 0)
-                return [[start_a, i+1], [start_b, j+1]];
-            i = new_a;
-            j = new_b;
-        }
-    },
-    
-    appendText: function(text, node) {
-        var el = node.ownerDocument.createTextNode(text);
-        KanJax.insertAfter(node, el);
-        return el;
-    },
-
-    addGroupReading : function(group, reading) {
-        var i, j, text_to_add, text, added_elements, 
-            is_simple_text, readtext, found, orig, node, el, el2;
-        
-        for(i = 0; i<group.length; ++i) {
-            if(!group[i].parentNode) {
-                console.log("ELEMENT REMOVED!! bailing out...");
-                return;
-            }
-        }
-        
-        i = 0;
-        j = 0;
-
-        //text we skipped over, with no reading to add, to be added in the dom.
-        text_to_add = '';
-        added_elements = false;
-        text = group[i].data;
-        node = group[i];
-
-        while(j < reading.length) {
-            is_simple_text = (typeof(reading[j])=='string');
-            readtext = is_simple_text ? reading[j] : reading[j][0];
-
-            found = KanJax.findStringIn(text, readtext);
-
-            //console.log("F with "+text+" ~~ "+readtext+" ~~ " 
-            //    + found.toString() + " ~ "+is_simple_text);
-
-            // no japanese text, go to the next text node
-            if(!found[0]) {
-                text_to_add += text;
-                if(text_to_add) {
-                    //console.log("T1: " + text_to_add);
-                    if(added_elements)
-                        node = KanJax.appendText(text_to_add, node);
-                    // else, the text was entirely skipped!
-                }
-                text_to_add = '';
-                i++;
-                if(i >= group.length)
-                    return;
-                added_elements = false;
-                text = group[i].data;
-                node = group[i];
-                continue;
-            }
-
-            // no japanese text in the reading string, skip this reading
-            if(!found[1]) {
-                j++;
-                //console.log("NO JAP in the reading!");
-                continue;
-            }
-
-            if(is_simple_text) {
-                text_to_add += text.substr(0, found[0][1]);
-                //console.log("more text...: " + text_to_add);
-            }
-            else {
-                text_to_add += text.substr(0, found[0][0]);
-                var has_text_to_add = !!text_to_add;
-                if(has_text_to_add) {
-                    //console.log("T2: " + text_to_add);
-                    if(node == group[i]) added_beginning = true;
-                    if(added_elements)
-                        node = KanJax.appendText(text_to_add, node);
-                    else
-                        node.data = text_to_add;
-                    text_to_add = '';
-                }
-                orig = text.substr(found[0][0], found[0][1]-found[0][0]);
-                //console.log("R: " + orig + "["+reading[j][1]+"]");
-                
-                var old_node = node;
-                doc = node.ownerDocument;
-
-                if(KanJax.useRubyElement) {
-                    el = doc.createElement("ruby");
-                    el2 = doc.createElement("rb");
-                    el2.appendChild(doc.createTextNode(orig));
-                    el.appendChild(el2);
-
-                    el2 = doc.createElement("rt");
-                    el2.appendChild(doc.createTextNode(reading[j][1]));
-                    el.appendChild(el2);
-                }
-                else {
-                    el2 = doc.createElement("span");
-                    el2.className = "kanjax_rt";
-                    el2.appendChild(doc.createTextNode(reading[j][1]));
-                    
-                    el = doc.createElement("span");
-                    el.className = "kanjax_ruby";
-                    el.appendChild(el2);
-                    el.appendChild(doc.createTextNode(orig));
-                }
-
-                KanJax.insertAfter(node, el);
-                node = el;
-
-                if(!has_text_to_add && !added_elements)
-                    KanJax.remove(old_node);
-                added_elements = true;
-            }
-            text = text.substr(found[0][1]); // new text removing what we saw
-
-            // if the element was not containing the whole read text, add the
-            // reamining part as simple text in the j+1-th position, so it will be skipped
-            // later. This is not optimal as the reading will all be over the first part,
-            // but will happen only if you break a word putting part of it in a link, etc.
-            if(found[1][1] < readtext.length) {
-                if(is_simple_text)
-                    reading[j] = readtext.substr(0, found[1][1]);
-                else
-                    reading[j][0] = readtext.substr(0, found[1][1]);
-                reading.splice(j+1, 0, readtext.substr(found[1][1]));
-                //console.log("NEW: "+reading);
-            }
-            j++;
-        }
-        if(text_to_add) {
-            //console.log("T3: "+text_to_add);
-            if(added_elements)
-                node = KanJax.appendText(text_to_add, node);
-            // else, the text was entirely skipped!
-        }
-    },
-    
-    display: function(el) {
-        return el.currentStyle ? el.currentStyle.display : getComputedStyle(el, null).display;
-    },
-    
-    addRubiesStep : function(state) {
-        var n, text, p, currp, currstr, currgr, totstr,
-            strings, groups, skipthis, skipgroup, url;
-        //var t1, t2, t3;
-        //t1 = new Date().getTime();
-
-        totstr = 0;
-        strings = [];
-        groups = [];
-        currp = null;
-        skipgroup = false;
-        currstr = '';
-        currgr = [];
-        while(state.i <= state.list.length) {
-            if(state.i < state.list.length) {
-                n = state.list[state.i];
-                p = n.parentNode;
-                if(!p) {
-                    console.log("ELEMENT REMOVED!! bailing out...");
-                    return;
-                }
-                skipthis = false;
-                //while(["A","B","I","EM","SPAN","FONT","STRONG","RUBY","RT","RB"].indexOf(p.tagName) >= 0) {
-                while(KanJax.display(p) == 'inline') {
-                    if(!skipgroup && KanJax.rubySkipGroupIf(p))
-                        skipgroup = true;
-                    p = p.parentNode;
-                }
-            }
-            else
-                n = p = null;
-            //console.log(n.data);
-            if(currp && (currp != p)) {
-                currstr = currstr.trim().replace(/\s+/g,' ');
-                //console.log('adding...'+skipgroup+', '+currstr+', '+currstr.search(KanJax.KANJI_REG));
-                if(!skipgroup && currstr && (currstr.search(KanJax.KANJI_REG) >= 0)) {
-                    totstr += currstr.length + 3;
-                    strings.push(currstr);
-                    groups.push(currgr);
-                    if(totstr > KanJax.postJPCharsSoftLimit) {
-                        //console.log('totstr: '+totstr);
-                        break;
-                    }
-                }
-                skipgroup = false;
-                currstr = '';
-                currgr = [];
-            }
-            if(state.i >= state.list.length)
-                break;
-            currp = p;
-            currgr.push(n);
-            currstr += n.data;
-            state.i++;
-        }
-
-        //console.log(strings);
-        if(!strings.length) {
-            if(state.settings && state.settings.success)
-                state.settings.success();
-            return;
-        }
-
-        url = encodeURI(KanJax.basePath + "reading.php");
-        $.ajax({
-            type: "POST",
-            data: { text : strings },
-            url: url,
-            success: function(result) {
-                var i;
-                if(result.status == "OK") {
-                    for(i = 0; i < groups.length; ++i)
-                        KanJax.addGroupReading(groups[i], result.data[i]);
-                    KanJax.addRubiesStep(state);
-                }
-                else {
-                    KanJax.showErrorPopup(result);  
-                }
-            },
-            error: function(xhr, msg) {
-                KanJax.showErrorPopup({ "status": "AJAX_ERROR",
-                    "message": KanJax.errorMessage(url, xhr)
-                });
-            }
-        });
-
-        //t2 = new Date().getTime();
-        //console.log('step1: '+(t2-t1));
-    },
-
-    addRubies : function(el, settings) {
-        var el, list, status;
-        el = el || document.body;
-        list = KanJax.textNodesUnder(el, false);
-        state = { list: list, i: 0, settings: settings };
-        //console.log(state);
-        KanJax.addRubiesStep(state);
-    },
-
-    removeRubies : function(el) {        
-        var els, coll, i, j, rb, ch, chn, text, tN;
-
-        el = el || document.body;
-
-        // make els an array, and NOT and HTMLCollection.
-        // If it is left as HTMLCollection and we iterate while not empty,
-        // it will trigger a slow behavior (bug?) in Chrome, and link
-        // removal is made very very slow (probably because the whole
-        // collection needs to be sorted at each step, or something).
-        coll = KanJax.useRubyElement ? el.getElementsByTagName("ruby") :
-                    el.getElementsByClassName("kanjax_ruby");
         els = [].slice.call(coll);
 
         for(i = 0; i<els.length; i++) {
-            if(KanJax.useRubyElement) {
-                rb = els[i].getElementsByTagName('RB');
-                if(rb.length == 0) {
-                    console.log('No RB child in RUBY?');
-                    continue;
-                }
-                ch = [].slice.call(rb[0].childNodes);
-                for(j = 1; j < rb.length; j++)
-                    ch += rb[i].childNodes;
-            }
-            else {
-                ch = [];
-                chn = els[i].childNodes;
-                for(j = 0; j < chn.length; j++)
-                    if(chn[j].nodeType != 1 || chn[j].className != "kanjax_rt")
-                        ch.push(chn[j]);
-            }
+            ch = replacement_func ? replacement_func(els[i])
+                : [].slice.call(els[i].childNodes);
             if(ch[0].nodeType == 3 &&
                 els[i].previousSibling && els[i].previousSibling.nodeType == 3) {
                 ch[0].data = els[i].previousSibling.data + ch[0].data;
@@ -817,9 +444,571 @@ var KanJax = {
         }
     },
 
-    setup : function(doc) {
-        var style;
-        doc = (doc || document);
+    fillFragmentWithKanjiInfo: function(frag, text, inlink, testkanjis) {
+        var parts, j, doc, pj, aN, kj, mpos;
+
+        mpos = text.search(KanJax.KANJI_REG);
+        if(mpos < 0) {
+            if(!testkanjis)
+                frag.appendChild(frag.ownerDocument.createTextNode(text));
+            return false;
+        }
+
+        doc = frag.ownerDocument;
+        parts = text.split(KanJax.SPLIT_REG);
+
+        j = 0;
+        if(mpos > 0) {
+            frag.appendChild(doc.createTextNode(parts[0]));
+            j = 1;
+        }
+
+        for( ; j < parts.length; j++) {
+            pj = parts[j];
+
+            aN = doc.createElement("SPAN");
+            aN.className = "kanjax";
+            kj = pj.slice(0,1);
+            aN.dataset['kanji'] = kj;
+            aN.onmousedown = inlink
+                ? KanJax.activateKanjiPopupMiddle
+                : KanJax.activateKanjiPopupLeftOrMiddle;
+            aN.appendChild(doc.createTextNode(kj));
+            frag.appendChild(aN);
+
+            if(parts[j].length > 1)
+                frag.appendChild(doc.createTextNode(pj.slice(1)));
+        }
+        return true;
+    },
+    
+    // Looks for all kanjis, and for each sets a link with a click function.
+    addKanjiInfo : function(el) {
+        var list, n, islink, parts, i, j, aN, tN, doc, frag;
+        //var t1, t2, t3;
+        t1 = new Date().getTime();
+
+        el = el || document.body;
+        list = KanJax.textNodesUnder(el, true);
+
+        t2 = new Date().getTime();
+        console.log('t2: '+(t2-t1));
+
+        frag = el.ownerDocument.createDocumentFragment();
+        for(i = 0; i<list.length; i++) {
+            n = list[i][0];
+            islink = list[i][1];
+            
+            doc = n.ownerDocument;
+            if(KanJax.fillFragmentWithKanjiInfo(frag, n.data, islink, true)) {
+                n.parentNode.replaceChild(frag, n);
+                frag = el.ownerDocument.createDocumentFragment();
+            }
+        }
+
+        t3 = new Date().getTime();
+        console.log('t3: '+(t3-t2));
+    },
+
+    findStringIn : function(a, b) {
+        var i, j, start_a, start_b, new_a, new_b;
+        i = start_a = a.regexIndexOf(KanJax.JP_REG, 0);
+        if(i < 0)
+            return [false, [0,0]];
+        j = start_b = b.regexIndexOf(KanJax.JP_REG, 0);
+        if(j < 0)
+            return [[i,i], false];
+        while(true) {
+            if(a[i] != b[j]) {
+                console.log('Mismatch: "'+a[i]+'" != "'+b[j]+'"');
+                console.log(a);
+                console.log(b);
+                throw "Mismatch!";
+            }
+            if(i+1 >= a.length || j+1 >= b.length) {
+                //console.log('Match: '+a.substr(start_a, i+1-start_a));
+                return [[start_a, i+1], [start_b, j+1]];
+            }
+            new_a = a.regexIndexOf(KanJax.JP_REG, i + 1);
+            new_b = b.regexIndexOf(KanJax.JP_REG, j + 1);
+            if(new_a < 0 || new_b < 0) {
+                //console.log('Match: '+a.substr(start_a, i+1-start_a));
+                return [[start_a, i+1], [start_b, j+1]];
+            }
+            i = new_a;
+            j = new_b;
+        }
+    },
+    
+    appendText: function(text, node) {
+        var el = node.ownerDocument.createTextNode(text);
+        KanJax.insertAfter(node, el);
+        return el;
+    },
+    
+    //KanJax.expandTemplate('{{%foo}} {{bar}} {{/foo}}',
+    //    {'foo':[{'bar':'a'},{'bar':'b'}]})
+    expandTemplate: function(template, obj) {
+        var content = template.replace(
+            /\{\{%(\w+)\}\}([\s\S]*)\{\{\/\1\}\}/g,
+            function(match, key, inner) {
+                var array, i, retv, item;
+                if(!key in obj)
+                    return "{unknown field "+key+"}";
+                array = obj[key];
+                if(!array)
+                    return '';
+                if(array.constructor != Array)
+                    return "{field "+key+" is not an array!}";
+                retv = '';
+                for(i = 0; i < array.length; i++) {
+                    item = array[i];
+                    if(typeof(item)!='object')
+                        item = {'THIS': item};
+                    if(i!=0)
+                        item.NOT_FIRST = true;
+                    else
+                        item.FIRST = true;
+                    if(i!=array.length-1)
+                        item.NOT_LAST = true;
+                    else
+                        item.LAST = true;
+                    retv += KanJax.expandTemplate(inner, item);
+                }
+                return retv;
+            });
+        content = content.replace(
+            /\{\{#(\w+)\}\}([\s\S]*)\{\{\/\1\}\}/g,
+            function(match, key, inner) {
+                return (key in obj) ? inner : '';
+            });
+        return content.replace(
+            /\{\{(\w+)(?:\:(\w+))?\}\}/g,
+            function(match, key, flags) {
+                var val;
+                if(key == 'KANJAX_BASEPATH')
+                    return KanJax.basePath;
+                if(!(key in obj))
+                    return "{unknown field "+key+"}";
+                val = obj[key];
+                console.log(key)
+                console.log(val)
+                if(flags == 'furigana')
+                    val = val.replace(/\[(\S+)\|(\S+)\]/g, function(m,k,r) {
+                        return '<ruby><rb>'+k+'</rb><rt>'+r+'</rt></ruby>';
+                    });
+                return val;
+            });
+    },
+
+    showDictPopup: function(info) {
+        var div, exp;
+
+        div = document.getElementById("kanjax_popup");
+        info = info.sort(function(a,b) {
+            return a.cm < b.cm;
+        });
+        exp = KanJax.expandTemplate(KanJax.dictPopupTemplate, {entries: info});
+        console.log(exp);
+        div.innerHTML = exp;
+        div.className = 'dict_popup';
+        KanJax.makePopupVisible(div);
+    },
+    
+    activateDictPopupMiddle: function(e) {
+        if((e.type == "mousedown") && e.which != 2)
+            return true;
+        return KanJax.activateDictPopup(e);
+    },
+
+    activateDictPopupLeftOrMiddle: function(e) {
+        if((e.type == "mousedown") && e.which != 2 && e.which != 1)
+            return true;
+        return KanJax.activateDictPopup(e);
+    },
+
+    // default click handler, uses jQuery + bPopup to show a nice popup
+    activateDictPopup: function(e) {
+        var kanji, info, img, w, url, i, messageHandler;
+
+        e.preventDefault();
+        e.stopPropagation();
+        word = e.currentTarget.dataset['lemma'];
+        console.log(e.currentTarget.dataset['lemma']);
+
+        $.ajax({
+            url: KanJax.basePath + 'dict.php',
+            data: { word: word },
+            success: function(result) {
+                if(result.status == "OK") {
+                    KanJax.kanjiPopupCache[kanji] = result.data;
+                    KanJax.showDictPopup(result.data);
+                }
+                else
+                    KanJax.showErrorPopup(result);
+            },
+            error: function(xhr, msg) {
+                KanJax.showErrorPopup({ "status": "AJAX_ERROR",
+                    "message": KanJax.errorMessage(url, xhr)
+                });
+            }
+        });
+    },
+
+    addGroupReading : function(group, word_data, kanji_info) {
+        var i, j, node, el, el2, doc, frag, container, word_node, 
+            text_to_add, text, is_simple_text, readtext, found, orig, wd, inlink,
+            rd_info, rd_string, rd_info_array, ctext;
+
+        for(i = 0; i<group.length; ++i) {
+            if(!group[i][0].parentNode) {
+                console.log("ELEMENT REMOVED!! bailing out...");
+                return;
+            }
+        }
+        
+        i = 0;
+        j = 0;
+
+        //text we skipped over, with no reading to add, to be added in the dom.
+        text_to_add = '';
+        node = group[i][0];
+        inlink = group[i][1];
+        text = node.data;
+        doc = node.ownerDocument;
+        frag = doc.createDocumentFragment();
+
+        while(j < word_data.length) {
+            wd = word_data[j];
+            is_simple_text = (typeof(wd)=='string');
+            readtext = is_simple_text ? wd : wd.f;
+
+            found = KanJax.findStringIn(text, readtext);
+
+            //console.log("F with " + text + " ~~ " + readtext + " ~~ " 
+            //          + found.toString() + " ~ " + is_simple_text);
+
+            // no japanese text, go to the next text node
+            if(!found[0]) {
+                text_to_add += text;
+                if(text_to_add) {
+                    if(kanji_info)
+                        KanJax.fillFragmentWithKanjiInfo(frag, text_to_add, inlink);
+                    else
+                        frag.appendChild(doc.createTextNode(text_to_add));
+                }
+                node.parentNode.replaceChild(frag, node);
+
+                i++;
+                if(i >= group.length)
+                    return;
+                text_to_add = '';
+                node = group[i][0];
+                doc = node.ownerDocument;
+                frag = doc.createDocumentFragment();
+                inlink = group[i][1];
+                text = node.data;
+                continue;
+            }
+
+            // no japanese text in the reading string, skip this reading
+            if(!found[1]) {
+                j++;
+                //console.log("NO JAP in the reading!");
+                continue;
+            }
+
+            if(is_simple_text) {
+                text_to_add += text.substr(0, found[0][1]);
+                //console.log("more text...: " + text_to_add);
+            }
+            else {
+                text_to_add += text.substr(0, found[0][0]);
+                if(text_to_add) {
+                    if(kanji_info)
+                        KanJax.fillFragmentWithKanjiInfo(frag, text_to_add, inlink);
+                    else
+                        frag.appendChild(doc.createTextNode(text_to_add));
+                    text_to_add = '';
+                }
+                orig = text.substr(found[0][0], found[0][1]-found[0][0]);
+
+                rd_info = wd.r;
+                rd_info_array = rd_info && (rd_info.constructor.name == 'Array');
+                if(rd_info_array) {
+                    if(rd_info[2] > orig.length)
+                        rd_info[2] = orig.length
+                    if(rd_info[1] >= rd_info[2])
+                        rd_info[1] = rd_info[2]-1;
+                    if(rd_info[1] == 0 && rd_info[2] == orig.length) {
+                        rd_info = rd_info[0];
+                        rd_info_array = false;
+                    }
+                }
+                if(!rd_info || rd_info_array) {
+                    container = doc.createElement("span");
+                    if(!rd_info)
+                        container.appendChild(doc.createTextNode(orig));
+                    else if(rd_info[1] > 0)
+                        container.appendChild(doc.createTextNode(orig.substr(0,rd_info[1])));
+                }
+
+                rd_string = rd_info_array ? rd_info[0] : rd_info;
+                if(rd_string) {
+                    ctext = rd_info_array ? orig.substr(rd_info[1], rd_info[2]-rd_info[1]) : orig;
+
+                    if(KanJax.useRubyElement) {
+                        el = doc.createElement("ruby");
+
+                        word_node = el2 = doc.createElement("rb");
+                        //console.log("3< "+ctext);
+                        if(kanji_info)    
+                            KanJax.fillFragmentWithKanjiInfo(el2, ctext, inlink);
+                        else
+                            el2.appendChild(doc.createTextNode(ctext));
+                        el.appendChild(el2);
+
+                        el2 = doc.createElement("rt");
+                        el2.appendChild(doc.createTextNode(rd_string));
+                        el.appendChild(el2);
+
+                    }
+                    else {
+                        el2 = doc.createElement("span");
+                        el2.className = "kanjax_rt";
+                        el2.appendChild(doc.createTextNode(rd_string));
+                        
+                        word_node = el = doc.createElement("span");
+                        el.className = "kanjax_ruby";
+                        el.appendChild(el2);
+                        el.appendChild(doc.createTextNode(ctext));
+                    }
+                }
+
+                if(!rd_info || rd_info_array) {
+                    if(rd_string)
+                        container.appendChild(el);
+                    if(rd_info && rd_info[2] < orig.length)
+                        container.appendChild(doc.createTextNode(orig.substr(rd_info[2])));
+                    frag.appendChild(container);
+                    word_node = container;
+                }
+                else
+                    frag.appendChild(el);
+                if(wd.l) {
+                    if(word_node.className)
+                        word_node.className += ' kanjax_lemma';
+                    else
+                        word_node.className = 'kanjax_lemma';
+                    word_node.dataset['lemma'] = wd.l;
+                    word_node.dataset['pos'] = wd.p;
+                    word_node.onmousedown = inlink
+                        ? KanJax.activateDictPopupMiddle
+                        : KanJax.activateDictPopupLeftOrMiddle;
+                }
+            }
+
+            // new text removing what we saw
+            text = text.substr(found[0][1]);
+
+            // if the element was not containing the whole read text, add the
+            // reamining part as simple text in the j+1-th position, so it will be skipped
+            // later. This is not optimal as the reading will all be over the first part,
+            // but will happen only if you break a word putting part of it in a link, etc.
+            if(found[1][1] < readtext.length) {
+                if(is_simple_text)
+                    word_data[j] = readtext.substr(0, found[1][1]);
+                else
+                    word_data[j][0] = readtext.substr(0, found[1][1]);
+                word_data.splice(j+1, 0, readtext.substr(found[1][1]));
+            }
+            j++;
+        }
+        if(text_to_add) {
+            if(kanji_info)
+                KanJax.fillFragmentWithKanjiInfo(frag, text_to_add, inlink);
+            else
+                frag.appendChild(doc.createTextNode(text_to_add));
+            text_to_add = '';
+        }
+        node.parentNode.replaceChild(frag, node);
+    },
+    
+    display: function(el) {
+        return el.currentStyle ? el.currentStyle.display : getComputedStyle(el, null).display;
+    },
+    
+    addWordInfoStep : function(state) {
+        var n, nl, text, p, currp, currstr, currgr, totstr,
+            strings, groups, skipthis, skipgroup, url;
+
+        totstr = 0;
+        strings = [];
+        groups = [];
+        currp = null;
+        skipgroup = false;
+        currstr = '';
+        currgr = [];
+        while(state.i <= state.list.length) {
+            if(state.i < state.list.length) {
+                nl = state.list[state.i];
+                n = nl[0];
+                p = n.parentNode;
+                if(!p) {
+                    console.log("ELEMENT REMOVED!! bailing out...");
+                    return;
+                }
+                skipthis = false;
+                //while(["A","B","I","EM","SPAN","FONT",
+                 //   "STRONG","RUBY","RT","RB"].indexOf(p.tagName) >= 0) {
+                while(KanJax.display(p) == 'inline') {
+                //while(p.display == 'inline' || ["A","B","I","EM","SPAN","FONT",
+                // "STRONG","RUBY","RT","RB"].indexOf(p.tagName) >= 0) {
+                    if(!skipgroup && KanJax.rubySkipGroupIf(p))
+                        skipgroup = true;
+                    p = p.parentNode;
+                }
+            }
+            else
+                n = p = null;
+            //console.log(n.data);
+            if(currp && (currp != p)) {
+                currstr = currstr.trim().replace(/\s+/g,' ');
+                //console.log('adding...'+skipgroup+', 
+                // '+currstr+', '+currstr.search(KanJax.KANJI_REG));
+                if(!skipgroup && currstr && (currstr.search(KanJax.KANJI_REG) >= 0)) {
+                    totstr += currstr.length + 3;
+                    strings.push(currstr);
+                    groups.push(currgr);
+                    if(totstr > KanJax.postJPCharsSoftLimit)
+                        break;
+                }
+                skipgroup = false;
+                currstr = '';
+                currgr = [];
+            }
+            if(state.i >= state.list.length)
+                break;
+            currp = p;
+            currgr.push(nl);
+            currstr += n.data;
+            state.i++;
+        }
+
+        //console.log(strings);
+        if(!strings.length) {
+            if(state.settings && state.settings.success)
+                state.settings.success();
+            return;
+        }
+
+        url = encodeURI(KanJax.basePath + "reading.php");
+        var req_start = new Date().getTime();
+        $.ajax({
+            type: "POST",
+            data: {
+                text: strings,
+                dict: state.settings.dict ? 1 : 0,
+                rubies: state.settings.rubies ? 1 : 0
+            },
+            url: url,
+            success: function(result) {
+                var i;
+                var t1;
+                t1 = new Date().getTime();
+                console.log('reqtm: '+(t1-req_start));
+                if(result.status == "OK") {
+                    console.log('Wall time: ' + result.wall_time);
+                    console.log('CPU time: ' + result.cpu_time);
+                    for(i = 0; i < groups.length; ++i)
+                        KanJax.addGroupReading(groups[i],
+                                               result.data[i],
+                                               state.settings.kanji_info);
+                    t3 = new Date().getTime();
+                    console.log('step1: '+(t3-t1));
+                    KanJax.addWordInfoStep(state);
+                    t2 = new Date().getTime();
+                    console.log('step2: '+(t2-t1));
+                    console.log('begin: '+(t2-state.start_time));
+                }
+                else {
+                    KanJax.showErrorPopup(result);  
+                }
+            },
+            error: function(xhr, msg) {
+                KanJax.showErrorPopup({ "status": "AJAX_ERROR",
+                    "message": KanJax.errorMessage(url, xhr)
+                });
+            }
+        });
+    },
+
+    addWordInfo : function(el, settings) {
+        var el, list, status;
+        el = el || document.body;
+        list = KanJax.textNodesUnder(el, true);
+        state = {
+            list: list,
+            i: 0,
+            settings: settings,
+            start_time: new Date().getTime()
+        };
+        //console.log(state);
+        KanJax.addWordInfoStep(state);
+    },
+
+    removeWordInfo : function(el) {        
+        var els, coll, i, j, rb, ch, chn, text, tN;
+
+        el = el || document.body;
+
+        // make els an array, and NOT and HTMLCollection.
+        // If it is left as HTMLCollection and we iterate while not empty,
+        // it will trigger a slow behavior (bug?) in Chrome, and link
+        // removal is made very very slow (probably because the whole
+        // collection needs to be sorted at each step, or something).
+        coll = KanJax.useRubyElement ? el.getElementsByTagName("ruby") :
+                    el.getElementsByClassName("kanjax_ruby");
+        KanJax.replaceAllWith(coll, function(el) {            
+            var rb, ch, chn;
+            if(KanJax.useRubyElement) {
+                rb = el.getElementsByTagName('RB');
+                if(rb.length == 0) {
+                    console.log('No RB child in RUBY?');
+                    return [];
+                }
+                ch = [].slice.call(rb[0].childNodes);
+                for(j = 1; j < rb.length; j++)
+                    ch += rb[i].childNodes;
+            }
+            else {
+                ch = [];
+                chn = els[i].childNodes;
+                for(j = 0; j < chn.length; j++)
+                    if(chn[j].nodeType != 1 || chn[j].className != "kanjax_rt")
+                        ch.push(chn[j]);
+            }
+            return ch;
+        });
+        
+        KanJax.replaceAllWith(el.getElementsByClassName("kanjax_lemma"));
+    },
+
+    addInfo : function(el, settings) {
+        if(settings.dict || settings.rubies)
+            KanJax.addWordInfo(el, settings);
+        else
+            KanJax.addKanjiInfo(el);
+    },
+    
+    removeInfo: function(el) {
+        KanJax.removeKanjiInfo(el);
+        KanJax.removeWordInfo(el);
+    },
+
+    setup : function(el) {
+        var style, doc;
+        doc = el ? el.ownerDocument : document;
         if(!doc.getElementById("kanjax_css")) {
             style = doc.createElement("link");
             style.id = "kanjax_css";
@@ -830,22 +1019,25 @@ var KanJax = {
         }
     },
 
-    cleanup: function(doc) {
-        var el;
-        doc = (doc || document);
-        if(el = doc.getElementById('kanjax_css'))
-            el.remove();
+    cleanup: function(el) {
+        var doc, css;
+        doc = el ? el.ownerDocument : document;
+        if(css = doc.getElementById('kanjax_css'))
+            css.remove();
     },
 
-    basicInstall: function() {
+    basicInstall: function(el) {
         KanJax.setupPopup();
-        KanJax.setup();
-        KanJax.addLinks();
+        el = el || document.body;
+        KanJax.setup(el);
+        KanJax.addInfo(el, {kanji_info: 1, dict: 1, rubies: 1});
     },
 
     fullUninstall: function() {
         KanJax.cleanupPopup();
-        KanJax.cleanup();
-        KanJax.removeLinks();
+        el = el || document.body;
+        KanJax.cleanup(el);
+        KanJax.removeKanjiInfo(el);
+        KanJax.removeWordInfo(el);
     }
 };

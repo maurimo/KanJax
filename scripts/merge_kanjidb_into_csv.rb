@@ -24,7 +24,12 @@ end
 
 if ARGV.length < 3 then
 puts <<EOF
-Usage: ./create_db.rb tabbed_text_file.txt sqlite.db new_tabbed_text.txt
+Merges into a tabbed text file (Anki export) the database, saving it
+as a new tabbed text file (that can be imported back into Anki). It
+allows to import back into Anki the edits done in the database via the
+web interface.
+
+Usage: #{File.basename($0)} tabbed_text_file.txt sqlite.db new_tabbed_text.txt
 EOF
 exit
 end
@@ -38,7 +43,7 @@ nchanged=0
 File.open(ARGV[2],'w'){ |o|
 File.open(ARGV[0]).each_line.each_with_index{ |l, ridx|
   fields = l.gsub(/\n$/,'').split("\t",-1).collect{ |f| unquote(f) }
-  rows = db.execute( "SELECT * FROM KanjiIinfo WHERE kanji = ?", fields[F_KANJI])
+  rows = db.execute( "SELECT * FROM KanjiInfo WHERE kanji = ?", fields[F_KANJI])
   newfields = fields.dup
   unless rows.empty? then
     row = rows[0]

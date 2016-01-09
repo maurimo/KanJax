@@ -57,6 +57,7 @@ iframe {
 }
 </style>
 <script language="JavaScript" type="text/javascript">
+KanJax.basePath = '/~maurizio/kanjax/kanjax/';
 $(function() {
     KanJax.setupPopup();
 });
@@ -66,50 +67,29 @@ function setError(e) {
     showerr.innerText = e ? e.message : "";
 }
 
-function myAddLinks() {
+function myAddInfo(settings) {
     var iframe = document.getElementById("myiframe");
     try {
         setError();
-        KanJax.setup(iframe.contentDocument);
-        KanJax.addLinks(iframe.contentDocument.body);
+        KanJax.setup(iframe.contentDocument.body);
+        KanJax.addInfo(iframe.contentDocument.body, settings);
     } catch(e) {
         setError(e);
     }
 }
 
-function myAddRubies(settings) {
+function myRemoveInfo() {
     var iframe = document.getElementById("myiframe");
     try {
         setError();
-        KanJax.setup(iframe.contentDocument);
-        KanJax.addRubies(iframe.contentDocument.body, settings);
-    } catch(e) {
-        setError(e);
-    }
-}
-
-function myRemoveLinks() {
-    var iframe = document.getElementById("myiframe");
-    try {
-        setError();
-        KanJax.removeLinks(iframe.contentDocument.body);
-    } catch(e) {
-        setError(e);
-    }
-}
-
-function myRemoveRubies() {
-    var iframe = document.getElementById("myiframe");
-    try {
-        setError();
-        KanJax.removeRubies(iframe.contentDocument.body);
+        KanJax.removeInfo(iframe.contentDocument.body);
     } catch(e) {
         setError(e);
     }
 }
 
 myHistory = [];
-forceViaProxy = true;
+forceViaProxy = false;//true;
 
 function myFrameLoad() {
     var iframe = document.getElementById("myiframe");
@@ -120,7 +100,7 @@ function myFrameLoad() {
         var outurl = window.location.origin + proxypath + '?url=';
         var inurl = iframe.contentWindow.location.origin;
         if(iframe.contentWindow.location.origin == window.location.origin
-        && myHistory.length >= 1)
+                                                    && myHistory.length >= 1)
         inurl = new URL(myHistory[0]).origin;
         inurl += iframe.contentWindow.location.pathname + iframe.contentWindow.location.search;
         var url = outurl + encodeURIComponent(inurl) + iframe.contentWindow.location.hash;
@@ -140,18 +120,9 @@ function myFrameLoad() {
         back.disabled = false;
     }
 
-    var autoaddrubies = document.getElementById("autoaddrubies");
-    if(autoaddrubies.checked)
-        myAddRubies({ success: function() {
-            var autoadd = document.getElementById("autoadd");
-            if(autoadd.checked)
-                myAddLinks();
-        }});
-    else {
-        var autoadd = document.getElementById("autoadd");
-        if(autoadd.checked)
-            myAddLinks();
-    }
+    var autoaddinfo = document.getElementById("autoaddinfo");
+    if(autoaddinfo.checked)
+        myAddInfo({kanji_info: 1, dict: 1, rubies: 1});
 }
 
 function myGo() {
@@ -182,22 +153,17 @@ function myBack() {
                               onclick="myBack();"/>
     <input type="button" value="Go!" onclick="myGo();"/><br/>
     <span style="font-size: 70%">
-    <input id="autoadd" type="checkbox">Auto-add kanji info on load</input>
+    <input id="autoaddinfo" type="checkbox">Auto-add info on load</input>
     <input type="button" value="Add info"
-                              onclick="myAddLinks();"/>
+                              onclick="myAddInfo({kanji_info: 1, dict: 1, rubies: 1});"/>
     <input type="button" value="Remove info"
-                              onclick="myRemoveLinks();"/><br/>
-    <input id="autoaddrubies" type="checkbox">Auto-add rubies on load</input>
-    <input type="button" value="Add rubies"
-                              onclick="myAddRubies();"/>
-    <input type="button" value="Remove rubies"
-                              onclick="myRemoveRubies();"/>
+                              onclick="myRemoveInfo();"/>
     </span>
 </td></tr></table>
     <div id="showerr"></div>
 
-    <!-- <iframe id="myiframe" onLoad="myFrameLoad()" src="http://127.0.0.1/~maurizio/kanjax/proxy.php?url=http%3A%2F%2F127.0.0.1%2F~maurizio%2Fkanjax%2Fiframe%2F%25E6%2597%25A5%25E6%259C%25AC%2520-%2520Wikipedia.html"></iframe> -->
-    <iframe id="myiframe" onLoad="myFrameLoad()" src="proxy.php?url=https%3A%2F%2Fja.wikipedia.org%2Fwiki%2F%25E6%2597%25A5%25E6%259C%25AC"></iframe>
+    <iframe id="myiframe" onLoad="myFrameLoad()" src="http://127.0.0.1/~maurizio/kanjax/iframe/%E6%97%A5%E6%9C%AC%20-%20Wikipedia.html"></iframe>
+    <!-- <iframe id="myiframe" onLoad="myFrameLoad()" src="proxy.php?url=https%3A%2F%2Fja.wikipedia.org%2Fwiki%2F%25E6%2597%25A5%25E6%259C%25AC"></iframe> -->
     <!-- <iframe id="myiframe" onLoad="myFrameLoad()" src="proxy.php?url=http%3A%2F%2Fjisho.org%2Fsearch%2F%2523kanji%2520%25E8%25B2%25AB"></iframe> -->
     <!-- <iframe id="myiframe" onLoad="myFrameLoad()" src="http://127.0.0.1/~maurizio/kanjax/proxy.php?url=https%3A%2F%2Fja.wikipedia.org%2Fwiki%2F%25E3%2583%25A2%25E3%2583%25BC%25E3%2583%25A9"></iframe> -->
     <!-- fixme: -->

@@ -39,13 +39,18 @@ body {
   Go back to the <a href="https://github.com/maurimo/KanJax">page on Github</a>
   <div class="container">
     <h3>Normal text</h3>
-    醤油<br/>
+    醤油。<br/>
+    もの。<br/>
     かなり多くのアメリカ人が寿司を好む。<br/>
     こうして私はいつも魚を料理する。<br/>
-    <input type="button" value="Add kanji info in the page"
+    <input type="button" value="+ Info"
                               onclick="KanJax.addLinks();"/>
-    <input type="button" value="Remove kanji info in the page"
+    <input type="button" value="- Info"
                               onclick="KanJax.removeLinks();"/>
+    <input type="button" value="+ Rubies"
+                              onclick="KanJax.addRubies();"/>
+    <input type="button" value="- Rubies"
+                              onclick="KanJax.removeRubies();"/>
   </div>
   <div id="forbidden" class="kanjax_forbidden container">
     <h3>Forbidden div</h3>
@@ -53,10 +58,14 @@ body {
     この夏最高の暑さだ。<br/>
     この夏休みはどこかへ行くのですか。<br/>
     But you can still force links in it:<br/>
-    <input type="button" value="Add kanji info in this div"
+    <input type="button" value="+ Info here"
                               onclick="KanJax.addLinks(document.getElementById('forbidden'));"/>
-    <input type="button" value="Remove kanji info in this div"
+    <input type="button" value="- Info here"
                               onclick="KanJax.removeLinks(document.getElementById('forbidden'));"/>
+    <input type="button" value="+ Rubies here"
+                              onclick="KanJax.addRubies(document.getElementById('forbidden'));"/>
+    <input type="button" value="- Rubies here"
+                              onclick="KanJax.removeRubies(document.getElementById('forbidden'));"/>
     <div id="forbidden2" class="kanjax_forbidden" style="border: 1px solid darkgrey; margin: 0.5em">
     Inner forbidden: 私は寿司が大好きです！
     </div>

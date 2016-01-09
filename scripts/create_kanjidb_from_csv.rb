@@ -25,7 +25,12 @@ end
 
 if ARGV.length < 2 then
 puts <<EOF
-Usage: ./create_db.rb tabbed_text_file.txt sqlite.db [images_origin_dir] [images_dest_dir]
+From a tabbed text file (anki export), creates a db. Optionally copies
+the referenced images from one dir into a n image dir. Make sure you
+edited the script so that the column (field) indexes matches the columns
+of your anki file.
+
+Usage: #{File.basename($0)} tabbed_text_file.txt sqlite.db [images_origin_dir] [images_dest_dir]
 EOF
 exit
 end
@@ -35,7 +40,7 @@ db = SQLite3::Database.new ARGV[1]
 
 # Create a database
 rows = db.execute <<-SQL
-  CREATE TABLE KanjiIinfo (
+  CREATE TABLE KanjiInfo (
     kanji TEXT(1) PRIMARY KEY,
     keyword TEXT(32),
     meaning TEXT(128),
@@ -61,7 +66,7 @@ File.open(ARGV[0]).each_line.each_with_index{ |l, i|
     File.write("#{ARGV[3]}/#{strokes}", File.read("#{ARGV[2]}/#{strokes}"))
   end
   #desc = "Il RE della LOGICA\" è' il COMPUTER."
-  db.execute("INSERT INTO KanjiIinfo VALUES ( ?, ?, ?, ?, ?, ?, ? )", 
+  db.execute("INSERT INTO KanjiInfo VALUES ( ?, ?, ?, ?, ?, ?, ? )", 
              [kanji, keyword, meaning, desc, strokes, onyomi, kunyomi])
   if((i+1) % 500 == 0) then
     db.commit
@@ -71,7 +76,3 @@ File.open(ARGV[0]).each_line.each_with_index{ |l, i|
 }
 db.commit
 
-# Find a few rows
-db.execute( "SELECT * FROM KanjiIinfo WHERE kanji = ?", '料') do |row|
-  p row
-end
