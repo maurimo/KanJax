@@ -7,6 +7,8 @@ String.prototype.regexIndexOf = function(regex, startpos) {
 var KanJax = {
     basePath: "kanjax/",
     
+    styleFile: "kanjax.css",
+    
     fatalError: false,
 
     loadStaticJSON: false,
@@ -1142,7 +1144,7 @@ var KanJax = {
             style.id = "kanjax_css";
             style.setAttribute("rel", "stylesheet");
             style.setAttribute("type", "text/css");
-            style.setAttribute("href", KanJax.basePath + "kanjax.css");
+            style.setAttribute("href", KanJax.basePath + KanJax.styleFile);
             doc.head.appendChild(style);
         }
     },

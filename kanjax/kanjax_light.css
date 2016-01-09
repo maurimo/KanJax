@@ -1,0 +1,116 @@
+.kanjax {
+    padding:   0px     !important;
+    border:    none    !important;
+    background-image: none !important;
+    display:   inline  !important;
+}
+.kanjax_lemma {
+    padding:   0px     !important;
+    border:    none    !important;
+    background-image: none !important;
+}
+.kanjax_ruby {
+    text-align: center    !important;
+    display: inline-block !important;
+}
+.kanjax_rt {
+    display: block !important;
+    font-size: 65%;
+    text-indent: 0px;
+    line-height: 0.9em;
+}
+rt, rp { font-size: 65%; }
+
+.kanjax_lemma:hover {
+    position:       relative;
+    background:     #fc8;
+    border-radius:  3px;
+    text-decoration: none !important;
+    cursor:         pointer;
+}
+.kanjax_lemma:hover:before {
+/*     content:    attr(data-lemma) ' ' attr(data-pos); */
+    content:    attr(data-reading);
+    word-break: keep-all;
+    font-weight: bold;
+    font-style:  normal;
+    display:    block;
+    z-index:    50;
+    position:   absolute;
+    background: #058;
+    color:      #fff;
+    padding:    4px 6px;
+    min-width:  100%;
+    text-align: center;
+    border-radius: 6px;
+
+    left:          50%;
+    -ms-transform:  translateX(-50%);
+    -moz-transform: translateX(-50%);
+    -webkit-transform: translateX(-50%);
+    transform: translateX(-50%);
+    bottom:        100%;
+    margin-bottom: 4.5px;
+}
+.kanjax_lemma:hover:after {
+    content:  '';
+    display:  block;
+    z-index:  50;
+    position: absolute;
+    height:   0;
+    border-color: transparent;
+    border-style: solid;
+    width:       50%;
+    left:        25%;
+    margin-left: -6px;
+    bottom: 100%;
+    border-width: 6px 6px 0;
+    border-top-color: #058;
+}
+
+.kanjax:hover {
+    position:       relative;
+    background:     #f6f;
+    border-radius:  3px;
+    text-decoration: none !important;
+    cursor:         pointer;
+}
+
+.kanjax:hover:before {
+    content:    attr(data-kanji);
+    word-break: keep-all;
+    font-weight: normal;
+    font-style:  normal;
+    display:    block;
+    z-index:    50;
+    position:   absolute;
+    background: #085;
+    color:      #fff;
+    padding:    2px 4px;
+    font-size:  150%;
+    text-align: center;
+    border-radius: 6px;
+    
+    left:          50%;
+    -ms-transform:  translateX(-50%);
+    -moz-transform: translateX(-50%);
+    -webkit-transform: translateX(-50%);
+    transform: translateX(-50%);
+    top:        100%;
+    margin-top: 4.5px;
+}
+.kanjax:hover:after {
+    content:      '';
+    display:      block;
+    z-index:      50;
+    position:     absolute;
+    height:       0;
+    border-color: transparent;
+    border-style: solid;
+    width:        50%;
+    left:         25%;
+    margin-left:  -6px;
+    top:          100%;
+    border-width: 0 6px 6px;
+    border-bottom-color: #085;
+}
