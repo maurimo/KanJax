@@ -846,8 +846,6 @@ var KanJax = {
     addWordInfoStep : function(state) {
         var n, nl, text, p, currp, currstr, currgr, totstr,
             strings, groups, skipthis, skipgroup, url;
-        //var t1, t2, t3;
-        //t1 = new Date().getTime();
 
         totstr = 0;
         strings = [];
@@ -866,8 +864,11 @@ var KanJax = {
                     return;
                 }
                 skipthis = false;
-                //while(["A","B","I","EM","SPAN","FONT","STRONG","RUBY","RT","RB"].indexOf(p.tagName) >= 0) {
+                //while(["A","B","I","EM","SPAN","FONT",
+                // "STRONG","RUBY","RT","RB"].indexOf(p.tagName) >= 0) {
                 while(KanJax.display(p) == 'inline') {
+                //while(p.display == 'inline' || ["A","B","I","EM","SPAN","FONT",
+                // "STRONG","RUBY","RT","RB"].indexOf(p.tagName) >= 0) {
                     if(!skipgroup && KanJax.rubySkipGroupIf(p))
                         skipgroup = true;
                     p = p.parentNode;
@@ -878,7 +879,8 @@ var KanJax = {
             //console.log(n.data);
             if(currp && (currp != p)) {
                 currstr = currstr.trim().replace(/\s+/g,' ');
-                //console.log('adding...'+skipgroup+', '+currstr+', '+currstr.search(KanJax.KANJI_REG));
+                //console.log('adding...'+skipgroup+', 
+                // '+currstr+', '+currstr.search(KanJax.KANJI_REG));
                 if(!skipgroup && currstr && (currstr.search(KanJax.KANJI_REG) >= 0)) {
                     totstr += currstr.length + 3;
                     strings.push(currstr);
@@ -914,12 +916,18 @@ var KanJax = {
             url: url,
             success: function(result) {
                 var i;
+                var t1;
+                t1 = new Date().getTime();
                 if(result.status == "OK") {
                     console.log('Wall time: ' + result.wall_time);
                     console.log('CPU time: ' + result.cpu_time);
                     for(i = 0; i < groups.length; ++i)
                         KanJax.addGroupReading(groups[i], result.data[i]);
+                    t3 = new Date().getTime();
+                    console.log('step1: '+(t3-t1));
                     KanJax.addWordInfoStep(state);
+                    t2 = new Date().getTime();
+                    console.log('step2: '+(t2-t1));
                 }
                 else {
                     KanJax.showErrorPopup(result);  
@@ -931,16 +939,18 @@ var KanJax = {
                 });
             }
         });
-
-        //t2 = new Date().getTime();
-        //console.log('step1: '+(t2-t1));
     },
 
     addWordInfo : function(el, settings) {
         var el, list, status;
         el = el || document.body;
         list = KanJax.textNodesUnder(el, true);
-        state = { list: list, i: 0, settings: settings };
+        state = {
+            list: list,
+            i: 0,
+            settings: settings,
+            start_time: new Date().getTime()
+        };
         //console.log(state);
         KanJax.addWordInfoStep(state);
     },
