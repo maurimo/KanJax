@@ -51,6 +51,13 @@ var KanJax = {
         return 'Loading "'+KanJax.html(url)+'": <br/>'+
             msg + ' - ' + KanJax.html(xhr.status)+' ('+KanJax.html(xhr.statusText)+')';
     },
+    
+    preventDefault: function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.currentTarget.removeEventListener("click", KanJax.preventDefault);
+        return false;
+    },
 
     // inserts into the DOM what is necessary to show the default popup.
     setupPopup: function() {
@@ -282,14 +289,18 @@ var KanJax = {
     },
 
     activateKanjiPopupMiddle: function(e) {
-        if((e.type == "mousedown") && e.which != 2)
+        if((e.type == "mousedown") && e.which != 2) {
+            e.currentTarget.removeEventListener("click", KanJax.preventDefault);
             return true;
+        }
         return KanJax.activateKanjiPopup(e);
     },
 
     activateKanjiPopupLeftOrMiddle: function(e) {
-        if((e.type == "mousedown") && e.which != 2 && e.which != 1)
+        if((e.type == "mousedown") && e.which != 2 && e.which != 1) {
+            e.currentTarget.removeEventListener("click", KanJax.preventDefault);
             return true;
+        }
         return KanJax.activateKanjiPopup(e);
     },
         
@@ -299,6 +310,8 @@ var KanJax = {
 
         e.preventDefault();
         e.stopPropagation();
+        e.currentTarget.addEventListener("click", KanJax.preventDefault);
+
         kanji = e.currentTarget.textContent || e.currentTarget.innerText;
 
         // test cache
@@ -653,14 +666,18 @@ var KanJax = {
     },
     
     activateDictPopupMiddle: function(e) {
-        if((e.type == "mousedown") && e.which != 2)
+        if((e.type == "mousedown") && e.which != 2) {
+            e.currentTarget.removeEventListener("click", KanJax.preventDefault);
             return true;
+        }
         return KanJax.activateDictPopup(e);
     },
 
     activateDictPopupLeftOrMiddle: function(e) {
-        if((e.type == "mousedown") && e.which != 2 && e.which != 1)
+        if((e.type == "mousedown") && e.which != 2 && e.which != 1) {
+            e.currentTarget.removeEventListener("click", KanJax.preventDefault);
             return true;
+        }
         return KanJax.activateDictPopup(e);
     },
 
@@ -670,6 +687,8 @@ var KanJax = {
 
         e.preventDefault();
         e.stopPropagation();
+        e.currentTarget.addEventListener("click", KanJax.preventDefault);
+
         word = e.currentTarget.dataset['lemma'];
         //console.log(e.currentTarget.dataset['lemma']);
 
