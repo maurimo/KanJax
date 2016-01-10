@@ -8,28 +8,32 @@ var KanJax = {
     basePath: "kanjax/",
     
     styleFile: "kanjax.css",
-    
-    fatalError: false,
 
     loadStaticJSON: false,
+    
+    hideTitleTooltips: true,
 
     profile: true,
+    
+    useRubyElement: true,
 
     rubySkipGroupIf: function(node) {
         if(['RB','RUBY'].indexOf(node.tagName) >= 0)
             return true;
         if(node.tagName == 'SPAN' && 
-            ['kanjax_ruby','kanjax_rt'].indexOf(node.className) >= 0)
+            ['kanjax_lemma', 'kanjax_ruby','kanjax_rt'].indexOf(node.className) >= 0)
             return true;
         return false;
     },
-    
-    useRubyElement: true,
     
     // while increasing this limit, keep in mind that each japanese char
     // is expanded to about 9 ascii chars, so, the POST request must allow
     // a request of size at least postJPCharsSoftLimit * 9.
     postJPCharsSoftLimit: 20000,
+    
+    //---------- end of settins --------------
+
+    fatalError: false,
     
     kanjiPopupTemplate: "Couldn't load popup template.",
 
@@ -49,13 +53,14 @@ var KanJax = {
     
     errorMessage: function(url, xhr, msg) {
         return 'Loading "'+KanJax.html(url)+'": <br/>'+
-            msg + ' - ' + KanJax.html(xhr.status)+' ('+KanJax.html(xhr.statusText)+')';
+            msg + ' - ' + KanJax.html(xhr.status)+
+            ' ('+KanJax.html(xhr.statusText)+')';
     },
     
-    preventDefault: function(e) {
+    preventClickEvent: function(e) {
         e.preventDefault();
         e.stopPropagation();
-        e.currentTarget.removeEventListener("click", KanJax.preventDefault);
+        e.currentTarget.removeEventListener("click", KanJax.preventClickEvent);
         return false;
     },
 
@@ -290,7 +295,7 @@ var KanJax = {
 
     activateKanjiPopupMiddle: function(e) {
         if((e.type == "mousedown") && e.which != 2) {
-            e.currentTarget.removeEventListener("click", KanJax.preventDefault);
+            e.currentTarget.removeEventListener("click", KanJax.preventClickEvent);
             return true;
         }
         return KanJax.activateKanjiPopup(e);
@@ -298,7 +303,7 @@ var KanJax = {
 
     activateKanjiPopupLeftOrMiddle: function(e) {
         if((e.type == "mousedown") && e.which != 2 && e.which != 1) {
-            e.currentTarget.removeEventListener("click", KanJax.preventDefault);
+            e.currentTarget.removeEventListener("click", KanJax.preventClickEvent);
             return true;
         }
         return KanJax.activateKanjiPopup(e);
@@ -310,7 +315,7 @@ var KanJax = {
 
         e.preventDefault();
         e.stopPropagation();
-        e.currentTarget.addEventListener("click", KanJax.preventDefault);
+        e.currentTarget.addEventListener("click", KanJax.preventClickEvent);
 
         kanji = e.currentTarget.textContent || e.currentTarget.innerText;
 
@@ -515,9 +520,16 @@ var KanJax = {
             aN.className = "kanjax";
             kj = pj.slice(0,1);
             aN.dataset['kanji'] = kj;
-            aN.onmousedown = inlink
+            aN.addEventListener("mousedown", inlink
                 ? KanJax.activateKanjiPopupMiddle
-                : KanJax.activateKanjiPopupLeftOrMiddle;
+                : KanJax.activateKanjiPopupLeftOrMiddle, false);
+            if(KanJax.hideTitleTooltips) {
+                aN.addEventListener("mouseover",
+                    KanJax.removeParentsTitles, false);
+                aN.addEventListener("mouseout",
+                    KanJax.restoreParentsTitles, false);
+            }
+
             aN.appendChild(doc.createTextNode(kj));
             frag.appendChild(aN);
 
@@ -527,8 +539,32 @@ var KanJax = {
         return true;
     },
     
+    removeParentsTitles: function(e) {
+        var el = e.currentTarget;
+
+        while(el && el.nodeType==1) { //ordinary elements
+            if(el.title) {
+                el.dataset.title = el.title;
+                el.title = '';
+            }
+            el = el.parentNode;
+        }
+    },
+    
+    restoreParentsTitles: function(e) {
+        var el = e.currentTarget, t;
+
+        while(el && el.nodeType==1) { //ordinary elements
+            if('title' in el.dataset) {
+                el.title = el.dataset.title;
+                delete el.dataset.title;
+            }
+            el = el.parentNode;
+        }
+    },
+    
     // Looks for all kanjis, and for each sets a link with a click function.
-    addKanjiInfo : function(el) {
+    addKanjiInfo: function(el) {
         var list, n, islink, parts, i, j, aN, tN, doc, frag, t1, t2, t3;
 
         if(KanJax.profile)
@@ -667,7 +703,7 @@ var KanJax = {
     
     activateDictPopupMiddle: function(e) {
         if((e.type == "mousedown") && e.which != 2) {
-            e.currentTarget.removeEventListener("click", KanJax.preventDefault);
+            e.currentTarget.removeEventListener("click", KanJax.preventClickEvent);
             return true;
         }
         return KanJax.activateDictPopup(e);
@@ -675,7 +711,7 @@ var KanJax = {
 
     activateDictPopupLeftOrMiddle: function(e) {
         if((e.type == "mousedown") && e.which != 2 && e.which != 1) {
-            e.currentTarget.removeEventListener("click", KanJax.preventDefault);
+            e.currentTarget.removeEventListener("click", KanJax.preventClickEvent);
             return true;
         }
         return KanJax.activateDictPopup(e);
@@ -687,7 +723,7 @@ var KanJax = {
 
         e.preventDefault();
         e.stopPropagation();
-        e.currentTarget.addEventListener("click", KanJax.preventDefault);
+        e.currentTarget.addEventListener("click", KanJax.preventClickEvent);
 
         word = e.currentTarget.dataset['lemma'];
         //console.log(e.currentTarget.dataset['lemma']);
@@ -868,9 +904,15 @@ var KanJax = {
                     if(wd.l) {
                         word_node.dataset['lemma'] = wd.l;
                         word_node.dataset['pos'] = wd.p;
-                        word_node.onmousedown = inlink
+                        word_node.addEventListener("mousedown", inlink
                             ? KanJax.activateDictPopupMiddle
-                            : KanJax.activateDictPopupLeftOrMiddle;
+                            : KanJax.activateDictPopupLeftOrMiddle, false);
+                        if(KanJax.hideTitleTooltips) {
+                            word_node.addEventListener("mouseover",
+                                KanJax.removeParentsTitles, false);
+                            word_node.addEventListener("mouseout",
+                                KanJax.restoreParentsTitles, false);
+                        }
                     }
                 }
             }
