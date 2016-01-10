@@ -8,26 +8,13 @@
 <script src="lib/jquery.jeditable.mini.js"></script>
 <script src="kanjax/kanjax.js"></script>
 <style>
-.maincontainer {
-  background-color: #e0e0ff;
-  border: 1px solid #8080ff;
-  margin: 1em;
-  margin-bottom: 1em;
-  margin-top: 1em;
-  padding-bottom: 1em;
-  border-radius: 0.8em;
-  text-align: center;
-  /*width: 92%;*/
-  line-height: 1.5em;
-  align-content: center;
-}
 body {
-  align-content: center;
-  text-align: center;
-  font-size: 14pt;
+  text-align:  center;
+  font-size:   12pt;
   font-family: Sans;
-  margin: 0px;
-  overflow: hidden;
+  margin:      0px;
+  overflow:    hidden;
+  background-color: #f0f6ff;
 }
 iframe {
   display:block;
@@ -38,9 +25,50 @@ iframe {
   border: none;
   border-top: 1px solid black;
 }
+.rot90 {
+  -ms-transform: rotate(-90deg);
+  -webkit-transform: rotate(-90deg);
+  transform: rotate(-90deg);
+}
 .cell {
+  padding: 0px;
   align-content: center;
   text-align: center;
+}
+#myaddress3 {
+    position:relative;
+    text-align: left;
+}
+#myaddress2 {
+    position: absolute;
+    top: 0;
+    height: 100%;
+}
+#myaddress {
+    margin:0px;
+    position: absolute;
+    top: 50%;
+    -ms-transform:  translateY(-50%);
+    -moz-transform: translateY(-50%);
+    -webkit-transform: translateY(-50%);
+    transform: translateY(-50%);
+}
+#myback {
+    background: url('dynamic_blue_left.png');
+    background-position:center;
+    background-size: 25px 25px;
+    background-repeat:no-repeat;
+    background-position: 0px 0px;
+    border: 1px solid gray;
+    height: 25px;           /* make this the size of your image */
+    width: 25px;
+    vertical-align: middle; /* align the text vertically centered */
+    cursor:   pointer;
+}
+#myback[disabled="true"] {
+    background: url('dynamic_gray_left.png');
+    background-size: 25px 25px;
+    cursor:   default;
 }
 .cell input {
   margin: auto;
@@ -57,10 +85,20 @@ iframe {
 </style>
 <script language="JavaScript" type="text/javascript">
 function onResize() {
-    var iframe = document.getElementById("myiframe");
-    var h = window.innerHeight - $(iframe).offset().top-1;
-    //iframe.style.height = h+'px';
-    console.log('h -> '+h);
+    var el, cont, r, iframe, h;
+    el = document.getElementById("rot90");
+    r = el.getBoundingClientRect();
+    cont = el.parentNode;
+    $(cont).height(r.height);
+    $(cont).width(r.width);
+    $(el).css({top: (r.height-r.width)/2,
+            left: (-r.height+r.width)/2 });
+            
+    el = document.getElementById('myaddress');
+    $(el).width($(el.parentNode.parentNode).width()-10);
+    
+    iframe = document.getElementById("myiframe");
+    h = window.innerHeight - $(iframe).offset().top-1;
     $(iframe).height(h);
 }
 
@@ -71,6 +109,11 @@ $(function() {
 
     onResize();
     $(window).on('resize', onResize);
+    
+    $("#myaddress").keyup(function(event){
+        if(event.keyCode == 13)
+            myGo()
+    });
 });
 
 function setError(e) {
@@ -128,12 +171,13 @@ function myFrameLoad() {
     var params = iframe.contentWindow.location.search;
     var url = decodeURIComponent(params.replace(/.*url=/,''));
 
-    var address = document.getElementById("address");
+    var address = document.getElementById("myaddress");
     address.value = url;
+    console.log(url);
 
     myHistory.unshift(url);
     if(myHistory.length > 1) {
-        var back = document.getElementById("back");
+        var back = document.getElementById("myback");
         back.disabled = false;
     }
 
@@ -144,7 +188,7 @@ function myFrameLoad() {
 
 function myGo() {
     var iframe = document.getElementById("myiframe");
-    var address = document.getElementById("address");
+    var address = document.getElementById("myaddress");
     iframe.contentWindow.location = "proxy.php?url=" + encodeURIComponent(address.value);
 }
 
@@ -155,21 +199,47 @@ function myBack() {
     var iframe = document.getElementById("myiframe");
     iframe.contentWindow.location = "proxy.php?url=" + encodeURIComponent(myHistory[0]);
     if(myHistory.length <= 1) {
-        var back = document.getElementById("back");
+        var back = document.getElementById("myback");
         back.disabled = true;
     }
 }
 </script>
 </head>
 <body>
-<table border="0" align="center"><tr><td class="cell">
-  <h2>KanJax "iframe" Demo</h2>
-  Go back to the <a href="https://github.com/maurimo/KanJax">page on Github</a>
-  </td><td class="cell" style="padding-left: 1em">
-    <input id="address" style="width: 400" type="edit" />
-    <input id="back" disabled="true" type="button" value="Back"
-                              onclick="myBack();"/>
-    <input type="button" value="Go!" onclick="myGo();"/><br/>
+<table border="0" align="center">
+<colgroup>
+<col span="1" style="width: 1%;">
+<col span="1" style="width: 99%;">
+</colgroup>
+<tbody><tr><td class="cell">
+    <div id='rot90cont' style='position: relative'>
+    <div class='rot90' id='rot90'
+        style='font-size:70%; position: absolute; padding: 0.15em'>
+        <b>KanJax</b><br/>
+        <div style="font-size:80%; line-height: 90%">
+        <a href="https://github.com/maurimo/KanJax">GitHub<br/>
+        page</a></div>
+    </div></div>
+  </td><td class="cell" style="padding-left: 0.4em">
+  
+  <!--<input id="back" disabled="true" type="button" value="Back"
+                style="overflow: hidden" onclick="myBack();"/>
+  <div><input id="address" style="display: block" type="edit" /></div>-->
+    <table border="0" style="width:100%;">
+        <colgroup>
+        <col span="1" style="width: 0%;">
+        <col span="1" style="width: 100%;">
+        </colgroup>
+        <tbody><tr><td class="cell"><input disabled="true" 
+            type="button" id="myback" value="" onclick="myBack();"/></td>
+        <td class="cell" id="myaddress3" style="position:relative; text-align: left;">
+        <div id="myaddress2" style="position: absolute; top: 0; height: 100%">
+        <input id="myaddress" 
+            style="margin:0px; position: absolute; top: 50%; -ms-transform:  translateY(-50%);
+    -moz-transform: translateY(-50%);
+    -webkit-transform: translateY(-50%);
+    transform: translateY(-50%);" type="edit" /></div>
+    </td></tr></tbody></table>
     <span style="font-size: 70%">
     <input id="autoaddinfo" type="checkbox"/> Auto-add info on load
     <input type="button" value="Add info"
@@ -177,7 +247,7 @@ function myBack() {
     <input type="button" value="Remove info"
                               onclick="myRemoveInfo();"/>
     </span>
-</td></tr></table>
+</td></tr></tbody></table>
     <div id="showerr"></div>
 
     <iframe id="myiframe" onLoad="myFrameLoad()" src="http://127.0.0.1/~maurizio/kanjax/iframe/%E6%97%A5%E6%9C%AC%20-%20Wikipedia.html"></iframe>

@@ -32,7 +32,7 @@ rt, rp { font-size: 65%; }
 
 [data-lemma] {
     position: relative;
-    cursor:   help;
+    cursor:   pointer;
 }
 [data-lemma]:before {
     content:    attr(data-lemma) ' ' attr(data-pos);
@@ -76,7 +76,7 @@ rt, rp { font-size: 65%; }
 }
 [data-kanji] {
     position: relative;
-    cursor:   help;
+    cursor:   pointer;
 }
 [data-kanji]:before {
     content:    attr(data-kanji);
