@@ -103,7 +103,7 @@ var KanJax = {
             //dictionary and furigana are not supported in the static case
         }
         else {
-            url = KanJax.basePath + "kanji_popup_template.html";
+            url = KanJax.basePath + "kanji_popup_template.php";
             $.get(url,
                 function(response) {
                     KanJax.kanjiPopupTemplate = response;
@@ -115,7 +115,7 @@ var KanJax = {
                 KanJax.fatalError = true;
             });
 
-            url = KanJax.basePath + "dict_popup_template.html";
+            url = KanJax.basePath + "dict_popup_template.php";
             $.get(url,
                 function(response) {
                     KanJax.dictPopupTemplate = response;
@@ -192,7 +192,7 @@ var KanJax = {
         // it not loading static local data, allow editing
         // for fields having "editable" class, the innerHTML will be edited.
         if(!KanJax.loadStaticJSON) {
-            url = encodeURI(KanJax.basePath + "data.php?kanji=" + kanji);
+            url = encodeURI(KanJax.basePath + "kanji_info.php?kanji=" + kanji);
             $("#kanjax_popup .editable").editable(url, {
                 id        : "key",
                 indicator : "<img style='height:1.15em' src='"+
@@ -341,7 +341,7 @@ var KanJax = {
                 }
             );
         else {
-            url = encodeURI(KanJax.basePath + "data.php?kanji=" + kanji);
+            url = encodeURI(KanJax.basePath + "kanji_info.php?kanji=" + kanji);
             $.ajax({
                 url: url,
                 success: function(result) {

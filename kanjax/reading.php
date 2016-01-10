@@ -1,5 +1,7 @@
 <?php
 
+header("Access-Control-Allow-Origin: *");
+
 $ru_start = getrusage();
 $time_start = microtime(true);
 
