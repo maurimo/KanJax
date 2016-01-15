@@ -43,8 +43,8 @@ iframe {
     border: 0px;
     height: 20px;           /* make this the size of your image */
     width: 20px;
-    margin-right: 0.5em;
-    margin-top: 0.3em;
+    margin-right: 0.1em;
+    margin-top: 0.1em;
     vertical-align: middle; /* align the text vertically centered */
     cursor:   pointer;
     float: right;
@@ -169,11 +169,11 @@ $(function() {
 
     setTimeout(onResize, 100);
     $(window).on('resize', onResize);
-    
-    $("#myaddress").keyup(function(event){
+
+    /*$("#myaddress").keyup(function(event){
         if(event.keyCode == 13)
             myGo();
-    });
+    });*/
     var address = document.getElementById("myaddress");
     address.focus();
     
@@ -216,24 +216,51 @@ $(function() {
         }
     });
 
-    myGo();
+    loadAllItems();
+    //myGo();
 });
 
 function closeClick(e) {
+    removeItem(e.currentTarget.dataset['item_id']);
     KanJax.remove(e.currentTarget.parentNode);
+}
+
+function removeItem(id) {
+    localStorage.removeItem('Tagger_item_'+id);
+}
+
+function loadAllItems() {
+    items = {};
+    for(var i = 0; i < localStorage.length; i++) {
+        var m = localStorage.key(i).match(/^Tagger_item_(\d+)$/);
+        if(m)
+            items[Number(m[1])] = localStorage.getItem(m[0]);
+    }
+    for(var k in items)
+        addItemHTML(items[k], k);
+}
+
+function storeItemHTML(text) {
+    var idx = Number(localStorage.getItem('Tagger_idx') || 0);
+    idx += 1;
+    localStorage.setItem('Tagger_item_'+idx, text);
+    localStorage.setItem('Tagger_idx', String(idx));
+    return idx;
 }
 
 function myGo() {
     var address = document.getElementById("myaddress");
     console.log(address.value);
     var text = address.value.trim();
+    address.value = '';
     if(!text)
         return;
-    address.value = '';
-    
     text = KanJax.html(text).replace(/\n/g,'<br>');
+    idx = storeItemHTML(text);
+    addItemHTML(text, idx);
+}
 
-    var cont = document.getElementById("cont");
+function addItemHTML(text, idx) {    
     var div = document.createElement("DIV");
     div.innerHTML = text;
     
@@ -245,48 +272,22 @@ function myGo() {
     });
 
     div.className = 'textelement';
-    //cont.insertBefore(div, cont.children[0]);
-    cont.appendChild(div);
 
     var el2 = document.createElement("INPUT");
     el2.type = 'button';
     el2.className = 'textclose';
+    if(idx)
+        el2.dataset['item_id'] = idx;
     el2.onclick = closeClick;
-    
-    $('.kanjax_rt').css({display:'none'});
-//     cont.insertBefore(el2, div);
+    div.insertBefore(el2, div.childNodes[0]);
+
+    var cont = document.getElementById("cont");
+    cont.insertBefore(div, cont.childNodes[0]);
 }
 
 function setError(e) {
     var showerr = document.getElementById("showerr");
     showerr.innerText = e ? e.message : "";
-}
-
-function myAddInfo() {
-    var iframe = document.getElementById("myiframe");
-    var settings = {
-        kanji_info: 1,
-        dict: 1,
-        rubies: 0,
-        full_reading: 1
-    }
-    try {
-        setError();
-        KanJax.setupTarget(iframe.contentDocument.body);
-        KanJax.addInfo(iframe.contentDocument.body, settings);
-    } catch(e) {
-        setError(e);
-    }
-}
-
-function myRemoveInfo() {
-    var iframe = document.getElementById("myiframe");
-    try {
-        setError();
-        KanJax.removeInfo(iframe.contentDocument.body);
-    } catch(e) {
-        setError(e);
-    }
 }
 </script>
 </head>
@@ -312,7 +313,11 @@ function myRemoveInfo() {
     </td></tr></table>
   </td><td class="cell" style="padding-left: 0.2em" id="myaddress3">
         <div id="myaddress2" style="position: absolute; top: 0; height: 100%">
-        <textarea rows="5" id="myaddress">私の文が正しくない場合、何か適切な例文を教えていただければ、とてもうれしいです。
+            <textarea rows="5" id="myaddress">
+            </textarea>
+        </div>
+<!--        
+私の文が正しくない場合、何か適切な例文を教えていただければ、とてもうれしいです。
 よろしくお願いします。
 
 1．proseguire
@@ -329,7 +334,7 @@ function myRemoveInfo() {
 − このストロベリーアイスの色はとても不自然／人工的だ。たぶん天然のイチゴを使っていない。
 5．dopodiché
 − 彼に一緒にイタリアを旅行しようと言った。その後、彼から何の連絡もない。
-</textarea></div>
+-->
 </td></tr></tbody></table>
 <div id="showerr"></div>
 <div id="cont"></div>
