@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>KanJax Demo</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<script src="lib/jquery-2.1.4.min.js"></script>
+<script src="lib/jquery.bpopup.min.js"></script>
+<script src="lib/jquery.jeditable.mini.js"></script>
+<script src="kanjax/kanjax.js"></script>
+<style>
+body {
+  text-align:  center;
+  font-size:   12pt;
+  font-family: Sans;
+  margin:      0px;
+  background-color: #f0f6ff;
+}
+iframe {
+  display: block;
+  width: 100%;
+  margin: 0px;
+  /*margin-top: 0.5em;*/
+  height: 100%;
+  border: none;
+  border-top: 1px solid black;
+}
+
+.textelement {
+  text-align:  left;
+  background-color: #f0e0d0;
+  border-radius: 0.3em;
+  margin:        0.3em 0.8em;
+  padding:       0.8em;
+  font-size:     12pt;
+  min-height:    20px;
+}
+.textclose {
+    background: url('false.png');
+    background-position:center;
+    background-size: 20px 20px;
+    background-repeat:no-repeat;
+    background-position: 0px 0px;
+    border: 0px;
+    height: 20px;           /* make this the size of your image */
+    width: 20px;
+    margin-right: 0.5em;
+    margin-top: 0.3em;
+    vertical-align: middle; /* align the text vertically centered */
+    cursor:   pointer;
+    float: right;
+}
+
+.rot90 {
+  -ms-transform: rotate(-90deg);
+  -webkit-transform: rotate(-90deg);
+  transform: rotate(-90deg);
+}
+.cell {
+  padding: 0px;
+  align-content: center;
+  text-align: center;
+}
+#myaddress3 {
+    position:relative;
+    text-align: left;
+}
+#myaddress2 {
+    position: absolute;
+    top: 0;
+    height: 100%;
+}
+#myaddress {
+    margin:0px;
+    position: absolute;
+}
+#mygo {
+    background: url('dynamic_blue_left.png');
+    background-position:center;
+    background-size: 25px 25px;
+    background-repeat:no-repeat;
+    background-position: 0px 0px;
+    border: 1px solid gray;
+    height: 25px;           /* make this the size of your image */
+    width: 25px;
+    vertical-align: middle; /* align the text vertically centered */
+    cursor:   pointer;
+}
+#mygo[disabled="true"] {
+    background: url('dynamic_gray_left.png');
+    background-size: 25px 25px;
+    cursor:   default;
+}
+.cell input {
+  margin: auto;
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
+}
+.cell h2 {
+  margin-bottom: 0.1em;
+}
+#showerr {
+  font-style: italic;
+  color: red;
+}
+.kanjax_lemma:hover:before {
+  content: attr(data-lemma) ' ' attr(data-pos) !important;
+  font-size: 80%;
+}
+.kanjax_lemma {
+    word-break: keep-all;
+}
+</style>
+<script language="JavaScript" type="text/javascript">
+function onResize() {
+    var el, cont, r, iframe, h;
+    el = document.getElementById("rot90");
+    r = el.getBoundingClientRect();
+    cont = el.parentNode;
+    $(cont).height(r.height);
+    $(cont).width(r.width);
+    $(el).css({top: (r.height-r.width)/2,
+            left: (-r.height+r.width)/2 });
+
+    el = document.getElementById('myaddress');
+    cont = el.parentNode.parentNode;
+    $(el.parentNode.parentNode).height($(el).height()+8);
+    $(el).width($(cont).width()-10);
+    $(el.parentNode).css({ top: ($(cont).height() - $(el).height())/4 });
+}
+
+/*function cleanupSel() {
+    var s = window.getSelection();
+    var r = s.getRangeAt(0);
+    var n;
+    KanJax.D = r.commonAncestorContainer;
+    walker = document.createTreeWalker(r.commonAncestorContainer,
+                    NodeFilter.SHOW_TEXT, null, false);
+    var rgs = [ new Range() ];
+    rgs[0].setStart(r.startContainer, r.startOffset);
+    while(n = walker.nextNode()) {
+        if(r.startContainer.compareDocumentPosition(n) & 2)
+            continue;
+        //KanJax.A = r.endContainer;
+        //KanJax.B = n;
+        //console.log(KanJax.A);
+        //console.log(KanJax.B);
+        if(r.endContainer.compareDocumentPosition(n) & 4)
+            break;
+        if(n.parentNode.tagName != 'RT')
+            console.log(n);
+        else {
+            rgs[rgs.length-1].setEndBefore(n);
+            rgs.push(new Range())
+            rgs[rgs.length-1].setStartAfter(n);
+        }
+    }
+    rgs[rgs.length-1].setEnd(r.endContainer, r.endOffset);
+    
+    s.removeAllRanges();
+    for(var i = 0; i < rgs.length; ++i)
+        s.addRange(rgs[i]);
+}*/
+
+$(function() {
+    //KanJax.basePath = '/~maurizio/kanjax/kanjax/';
+    KanJax.styleFile = 'kanjax_light.css';
+    KanJax.setupPopup();
+    KanJax.setupTarget();
+
+    setTimeout(onResize, 100);
+    $(window).on('resize', onResize);
+    
+    $("#myaddress").keyup(function(event){
+        if(event.keyCode == 13)
+            myGo();
+    });
+    var address = document.getElementById("myaddress");
+    address.focus();
+    
+    //$(document).on('copy', cleanupSel);
+    $(document).on('copy', function(e) {
+        KanJax.E = e;
+        if (navigator.userAgent.indexOf("Firefox")==-1) {
+            var nonCopyable = KanJax.useRubyElement ? $('rt:not(.emptied_by_me)')
+                : $('.kanjax_rt:not(.emptied_by_me)');
+            var s = window.getSelection();
+            var r = s.getRangeAt(0);
+            KanJax.info = [r.startContainer, r.endContainer];
+            nonCopyable.each(function(index,el) {
+                if( ((r.startContainer.compareDocumentPosition(el) & 2) &&
+                     !(r.startContainer.compareDocumentPosition(el) & 8))
+                 || (r.endContainer.compareDocumentPosition(el) & 4) ) {
+                    return;
+                }
+                var $el = $(el);
+                var br = el.getBoundingClientRect();
+                var p = el.parentNode;
+                var pbr = el.getBoundingClientRect();
+                $(el).data('content', $(el).html())
+                $(p).css({
+                    'width' : pbr.width+'px',
+                    'padding-top' : br.height+'px',
+                });
+                $(el).addClass('emptied_by_me');
+            });
+            setTimeout(function() {
+                $('.emptied_by_me').each(function(index,el) {
+                    var p = el.parentNode;
+                    $(p).css({
+                        'width' : '',
+                        'padding-top' : '',
+                    });
+                    $(el).removeClass('emptied_by_me');
+                });
+            }, 10);
+        }
+    });
+
+    myGo();
+});
+
+function closeClick(e) {
+    KanJax.remove(e.currentTarget.parentNode);
+}
+
+function myGo() {
+    var address = document.getElementById("myaddress");
+    console.log(address.value);
+    var text = address.value.trim();
+    if(!text)
+        return;
+    address.value = '';
+    
+    text = KanJax.html(text).replace(/\n/g,'<br>');
+
+    var cont = document.getElementById("cont");
+    var div = document.createElement("DIV");
+    div.innerHTML = text;
+    
+    KanJax.addInfo(div, {
+        kanji_info: 1,
+        dict: 1,
+        rubies: 1,
+        full_reading: 1
+    });
+
+    div.className = 'textelement';
+    //cont.insertBefore(div, cont.children[0]);
+    cont.appendChild(div);
+
+    var el2 = document.createElement("INPUT");
+    el2.type = 'button';
+    el2.className = 'textclose';
+    el2.onclick = closeClick;
+    
+    $('.kanjax_rt').css({display:'none'});
+//     cont.insertBefore(el2, div);
+}
+
+function setError(e) {
+    var showerr = document.getElementById("showerr");
+    showerr.innerText = e ? e.message : "";
+}
+
+function myAddInfo() {
+    var iframe = document.getElementById("myiframe");
+    var settings = {
+        kanji_info: 1,
+        dict: 1,
+        rubies: 0,
+        full_reading: 1
+    }
+    try {
+        setError();
+        KanJax.setupTarget(iframe.contentDocument.body);
+        KanJax.addInfo(iframe.contentDocument.body, settings);
+    } catch(e) {
+        setError(e);
+    }
+}
+
+function myRemoveInfo() {
+    var iframe = document.getElementById("myiframe");
+    try {
+        setError();
+        KanJax.removeInfo(iframe.contentDocument.body);
+    } catch(e) {
+        setError(e);
+    }
+}
+</script>
+</head>
+<body>
+<table border="0" align="center">
+<colgroup>
+<col span="1" style="width: 1%;">
+<col span="1" style="width: 99%;">
+</colgroup>
+<tbody><tr><td class="cell">
+    <table border="0" align="center">
+    <tbody><tr><td class="cell">
+        <div id='rot90cont' style='position: relative'>
+        <div class='rot90' id='rot90'
+            style='font-size:70%; position: absolute; padding: 0.15em'>
+            <b>KanJax</b><br/>
+            <div style="font-size:80%; line-height: 90%">
+            <a href="https://github.com/maurimo/KanJax">GitHub<br/>
+            page</a></div>
+        </div></div>
+    </td></tr><tr valign='bottom'><td valign='bottom'>
+        <input type="button" id="mygo" value="" onclick="myGo();"/>
+    </td></tr></table>
+  </td><td class="cell" style="padding-left: 0.2em" id="myaddress3">
+        <div id="myaddress2" style="position: absolute; top: 0; height: 100%">
+        <textarea rows="5" id="myaddress">私の文が正しくない場合、何か適切な例文を教えていただければ、とてもうれしいです。
+よろしくお願いします。
+
+1．proseguire
+− 私はイタリア語の勉強をやり遂げなくてはいけない。
+− その話題はいつまで続くの？
+2．torto
+− 私が間違っていた。だけど、そんなつっかかった言い方をする必要はなかった。
+− 納豆の匂いに、彼は顔をゆがめた／しかめっ面をした。
+3．affrontare
+− その問題に取り組まずに、私たちはこのプロジェクトをやり遂げることはできないだろう。
+− 私と折り紙で腕比べをしたいなら、喜んで受けて立つよ／わ（冗談です。私は折り紙が／は得意ではありません）。
+4．artificiale
+− 彼は私に作り笑いを浮かべながら出張の話をした。何か隠しごとでもあるのだろうか？
+− このストロベリーアイスの色はとても不自然／人工的だ。たぶん天然のイチゴを使っていない。
+5．dopodiché
+− 彼に一緒にイタリアを旅行しようと言った。その後、彼から何の連絡もない。
+</textarea></div>
+</td></tr></tbody></table>
+<div id="showerr"></div>
+<div id="cont"></div>
+
+</body>
+</html>

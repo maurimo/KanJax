@@ -140,6 +140,16 @@ var KanJax = {
             document.head.appendChild(style);
         }
 
+        // load the css
+        if(!document.getElementById('kanjax_ruby_style')) {
+            style = document.createElement("link");
+            style.id = "kanjax_ruby_style";
+            style.setAttribute("rel", "stylesheet");
+            style.setAttribute("type", "text/css");
+            style.setAttribute("href", KanJax.basePath + "ruby.css");
+            document.head.appendChild(style);
+        }
+
         // load the popup
         if(!document.getElementById('kanjax_popup')) {
             div = document.createElement("div");
@@ -157,6 +167,9 @@ var KanJax = {
             KanJax.remove(el);
         if(el = document.getElementById('kanjax_popup_style'))
             KanJax.remove(el);
+        if(el = document.getElementById('kanjax_ruby_style'))
+            if(!document.getElementById('kanjax_style')) //still target data?
+                KanJax.remove(el);
         if(el = document.getElementById('kanjax_error_popup_style'))
             KanJax.remove(el);
     },
@@ -1217,21 +1230,34 @@ var KanJax = {
         }
 
         doc = el ? el.ownerDocument : document;
-        if(!doc.getElementById("kanjax_css")) {
+        if(!doc.getElementById("kanjax_style")) {
             style = doc.createElement("link");
-            style.id = "kanjax_css";
+            style.id = "kanjax_style";
             style.setAttribute("rel", "stylesheet");
             style.setAttribute("type", "text/css");
             style.setAttribute("href", KanJax.basePath + KanJax.styleFile);
             doc.head.appendChild(style);
+        }
+
+        // load the css
+        if(!document.getElementById('kanjax_ruby_style')) {
+            style = document.createElement("link");
+            style.id = "kanjax_ruby_style";
+            style.setAttribute("rel", "stylesheet");
+            style.setAttribute("type", "text/css");
+            style.setAttribute("href", KanJax.basePath + "ruby.css");
+            document.head.appendChild(style);
         }
     },
 
     cleanupTarget: function(el) {
         var doc, css;
         doc = el ? el.ownerDocument : document;
-        if(css = doc.getElementById('kanjax_css'))
+        if(css = doc.getElementById('kanjax_style'))
             css.remove();
+        if(css = doc.getElementById('kanjax_ruby_style'))
+            if(!document.getElementById('kanjax_popup_style')) //still popup data?
+                css.remove();
     },
 
     basicInstall: function(el, settings) {
