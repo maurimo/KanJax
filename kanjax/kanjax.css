@@ -29,6 +29,13 @@ a .kanjax {
     line-height: 0.9em;
 }
 rt, rp { font-size: 65%; }
+rt {
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -ms-user-select: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
 
 [data-lemma] {
     position: relative;

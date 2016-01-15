@@ -15,7 +15,9 @@ var KanJax = {
 
     profile: true,
     
-    useRubyElement: true,
+    useRubyElement: false,
+    
+    rubyElementDisplayInlineBlock: true,
 
     rubySkipGroupIf: function(node) {
         if(['RB','RUBY'].indexOf(node.tagName) >= 0)
@@ -43,12 +45,12 @@ var KanJax = {
     html: (function(){
         var entityMap = { "&": "&amp;",  "<": "&lt;",  ">": "&gt;",
                 '"': '&quot;',  "'": '&#39;',  "/": '&#x2F;'  };
-
-        return function(string) {
-            return String(string).replace(/[&<>"'\/]/g, function (s) {
+        var replacer = function (s) {
             return entityMap[s];
-            });
-        }
+        };
+        return function(string) {
+            return String(string).replace(/[&<>"'\/]/g, replacer);
+        };
     })(),
     
     errorMessage: function(url, xhr, msg) {
@@ -681,7 +683,13 @@ var KanJax = {
                 //console.log(val)
                 if(flags == 'furigana')
                     val = val.replace(/\[(\S+)\|(\S+)\]/g, function(m,k,r) {
-                        return '<ruby><rb>'+k+'</rb><rt>'+r+'</rt></ruby>';
+                        if(!KanJax.useRubyElement)
+                            return '<span class="kanjax_ruby"><span class="kanjax_rt">'+
+                                        r+'</span>'+k+'</span>';
+                        else if(KanJax.rubyElementDisplayInlineBlock)
+                            return '<ruby><rt>'+r+'</rt><rb>'+k+'</rb></ruby>';
+                        else
+                            return '<ruby><rb>'+k+'</rb><rt>'+r+'</rt></ruby>';
                     });
                 return val;
             });
@@ -857,17 +865,25 @@ var KanJax = {
                     if(KanJax.useRubyElement) {
                         el = doc.createElement("ruby");
 
+                        // put before, if ruby is inline-block (fixes webkit flickering)
+                        if(KanJax.rubyElementDisplayInlineBlock) {
+                            el2 = doc.createElement("rt");
+                            el2.appendChild(doc.createTextNode(rd_string));
+                            el.appendChild(el2);
+                        }
+
                         word_node = el2 = doc.createElement("rb");
                         if(kanji_info)    
                             KanJax.fillFragmentWithKanjiInfo(el2, ctext, inlink);
                         else
                             el2.appendChild(doc.createTextNode(ctext));
                         el.appendChild(el2);
-
-                        el2 = doc.createElement("rt");
-                        el2.appendChild(doc.createTextNode(rd_string));
-                        el.appendChild(el2);
-
+                        
+                        if(!KanJax.rubyElementDisplayInlineBlock) {
+                            el2 = doc.createElement("rt");
+                            el2.appendChild(doc.createTextNode(rd_string));
+                            el.appendChild(el2);
+                        }
                     }
                     else {
                         el2 = doc.createElement("span");
@@ -878,7 +894,7 @@ var KanJax = {
                         el.className = "kanjax_ruby";
                         el.appendChild(el2);
                         if(kanji_info)    
-                            KanJax.fillFragmentWithKanjiInfo(el2, ctext, inlink);
+                            KanJax.fillFragmentWithKanjiInfo(el, ctext, inlink);
                         else
                             el.appendChild(doc.createTextNode(ctext));
                     }
