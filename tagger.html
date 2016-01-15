@@ -24,7 +24,6 @@ iframe {
   border: none;
   border-top: 1px solid black;
 }
-
 .textelement {
   text-align:  left;
   background-color: #f0e0d0;
@@ -72,6 +71,7 @@ iframe {
 #myaddress {
     margin:0px;
     position: absolute;
+    resize: vertical;
 }
 #mygo {
     background: url('dynamic_blue_left.png');
@@ -126,6 +126,9 @@ function onResize() {
     $(el.parentNode.parentNode).height($(el).height()+8);
     $(el).width($(cont).width()-10);
     $(el.parentNode).css({ top: ($(cont).height() - $(el).height())/4 });
+
+    $(el).data('x', $(el).outerWidth());
+    $(el).data('y', $(el).outerHeight()); 
 }
 
 /*function cleanupSel() {
@@ -167,16 +170,15 @@ $(function() {
     KanJax.setupPopup();
     KanJax.setupTarget();
 
-    setTimeout(onResize, 100);
-    $(window).on('resize', onResize);
-
     /*$("#myaddress").keyup(function(event){
         if(event.keyCode == 13)
             myGo();
     });*/
+
     var address = document.getElementById("myaddress");
     address.focus();
-    
+
+
     //$(document).on('copy', cleanupSel);
     $(document).on('copy', function(e) {
         KanJax.E = e;
@@ -217,7 +219,18 @@ $(function() {
     });
 
     loadAllItems();
-    //myGo();
+
+    setTimeout(onResize, 0);
+    $(window).on('resize', onResize);
+    $('#myaddress').mouseup(function(){
+        var $this = jQuery(this);
+        if (  $this.outerWidth()  == $this.data('x') 
+            && $this.outerHeight() == $this.data('y') )
+            return;
+        onResize();
+        $this.data('x', $this.outerWidth());
+        $this.data('y', $this.outerHeight()); 
+   });
 });
 
 function closeClick(e) {
@@ -315,25 +328,6 @@ function setError(e) {
         <div id="myaddress2" style="position: absolute; top: 0; height: 100%">
             <textarea rows="5" id="myaddress"></textarea>
         </div>
-<!--        
-私の文が正しくない場合、何か適切な例文を教えていただければ、とてもうれしいです。
-よろしくお願いします。
-
-1．proseguire
-− 私はイタリア語の勉強をやり遂げなくてはいけない。
-− その話題はいつまで続くの？
-2．torto
-− 私が間違っていた。だけど、そんなつっかかった言い方をする必要はなかった。
-− 納豆の匂いに、彼は顔をゆがめた／しかめっ面をした。
-3．affrontare
-− その問題に取り組まずに、私たちはこのプロジェクトをやり遂げることはできないだろう。
-− 私と折り紙で腕比べをしたいなら、喜んで受けて立つよ／わ（冗談です。私は折り紙が／は得意ではありません）。
-4．artificiale
-− 彼は私に作り笑いを浮かべながら出張の話をした。何か隠しごとでもあるのだろうか？
-− このストロベリーアイスの色はとても不自然／人工的だ。たぶん天然のイチゴを使っていない。
-5．dopodiché
-− 彼に一緒にイタリアを旅行しようと言った。その後、彼から何の連絡もない。
--->
 </td></tr></tbody></table>
 <div id="showerr"></div>
 <div id="cont"></div>
