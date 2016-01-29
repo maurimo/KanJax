@@ -109,6 +109,14 @@ iframe {
 .kanjax_lemma {
     word-break: keep-all;
 }
+.kanjax_rt {
+    color: transparent;
+    border: solid 1px lightgray;
+}
+.show_rt .kanjax_rt {
+    color: inherit;
+    border: solid 1px transparent;
+}
 </style>
 <script language="JavaScript" type="text/javascript">
 function onResize() {
@@ -281,8 +289,17 @@ function addItemHTML(text, idx) {
         kanji_info: 1,
         dict: 1,
         rubies: 1,
-        full_reading: 1
-    });
+        full_reading: 1,
+        on_success: function() {
+            console.log('called!')
+            var els = div.getElementsByClassName('kanjax_lemma');
+            for(var i=0; i<els.length; i++)
+                $(els[i]).on(
+                    'mouseover.showfurigana', function(e){
+                        $(this).addClass('show_rt').off('mouseover.showfurigana');
+                });
+            }
+        });
 
     div.className = 'textelement';
 

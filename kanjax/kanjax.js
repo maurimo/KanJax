@@ -1041,6 +1041,8 @@ var KanJax = {
             req_time = new Date().getTime();
 
         if(!strings.length) {
+            if(state.on_success)
+                state.on_success();
             t = 0.001*(req_time-state.start_time);
             console.log('[wi] total time: ' + t);
             t = 0;
@@ -1145,6 +1147,7 @@ var KanJax = {
             i: 0,
             settings: settings,
             start_time: t2,
+            on_success: settings.on_success
         };
 
         if(KanJax.profile) {
