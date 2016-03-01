@@ -71,8 +71,8 @@ rb.kanjax_lemma {
     cursor:         pointer;
 }
 .kanjax_lemma:hover:before {
-/*     content:    attr(data-lemma) ' ' attr(data-pos); */
-    content:    attr(data-reading);
+    content:    attr(data-lemma) ' ' attr(data-pos);
+/*     content:    attr(data-reading); */
     font-weight: bold;
     font-style:  normal;
     display:    block;
