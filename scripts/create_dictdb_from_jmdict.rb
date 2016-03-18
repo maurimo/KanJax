@@ -97,7 +97,9 @@ def process(el)
 
     senses = []
     el.find('./sense').each{ |sense|
-        pos = sense.find('./pos').collect{|x| x.content}.join(', ')
+        pos = sense.find('./pos').collect{|x|
+                x.children[0].to_s.gsub(/^&|;$/,'')}.join(',')
+        #pos = sense.find('./pos').collect{|x| x.content}.join(', ')
         gloss = sense.find('./gloss').collect{|x| x.content}.join('; ')
         misc = (sense.find('./misc').collect{|x| x.content} + 
                 sense.find('./s_inf').collect{|x| x.content}).join(', ')

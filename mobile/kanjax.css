@@ -1,0 +1,38 @@
+.kanjax {
+    color:     #c00000 !important;
+    padding:   0px     !important;
+    border:    none    !important;
+    background-image: none !important;
+    display:   inline  !important;
+    cursor:    pointer !important;
+}
+a .kanjax {
+    color: #a000a0  !important;
+    cursor: pointer !important;
+}
+.kanjax_lemma {
+    cursor:           pointer !important;
+    border-radius:    5px     !important;
+    padding:          1px     !important;
+}
+.kanjax_lemma:hover {
+    background-color: #ffffa0 !important;
+}
+.kanjax_ruby {
+    text-align: center    !important;
+    display: inline-block !important;
+}
+.kanjax_rt {
+    display: block !important;
+    font-size: 65%;
+    text-indent: 0px;
+    line-height: 0.9em;
+}
+rt, rp { font-size: 65%; }
+rt {
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -ms-user-select: none;
+    -webkit-user-select: none;
+    user-select: none;
+}

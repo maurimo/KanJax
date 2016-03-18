@@ -11,6 +11,10 @@ var KanJax = {
 
     loadStaticJSON: false,
     
+    staticDataPath: "kanjax/static_data/",
+    
+    loadJsBlob: false,
+    
     hideTitleTooltips: true,
 
     profile: true,
@@ -91,7 +95,10 @@ var KanJax = {
         }
 
         // load the template, if loading local data just put here a static version
-        if(KanJax.loadStaticJSON) {
+        if(KanJax.loadJsBlob) {
+            KanJax.kanjiPopupTemplate = KanjaxPopupTemplate;
+        }
+        else if(KanJax.loadStaticJSON) {
             KanJax.iframeRequest(
                 KanJax.basePath + "kanji_popup_template.static.html",
                 function(result) {
@@ -132,21 +139,33 @@ var KanJax = {
 
         // load the css
         if(!document.getElementById('kanjax_popup_style')) {
-            style = document.createElement("link");
+            if(KanJax.loadJsBlob) {
+                style = document.createElement("style");
+                style.innerText = KanjaxPopupCss;
+            }
+            else {
+                style = document.createElement("link");
+                style.setAttribute("rel", "stylesheet");
+                style.setAttribute("type", "text/css");
+                style.setAttribute("href", KanJax.basePath + "popup.css");
+            }
             style.id = "kanjax_popup_style";
-            style.setAttribute("rel", "stylesheet");
-            style.setAttribute("type", "text/css");
-            style.setAttribute("href", KanJax.basePath + "popup.css");
             document.head.appendChild(style);
         }
 
         // load the css
         if(!document.getElementById('kanjax_ruby_style')) {
-            style = document.createElement("link");
+            if(KanJax.loadJsBlob) {
+                style = document.createElement("style");
+                style.innerText = KanjaxRubyCss;
+            }
+            else {
+                style = document.createElement("link");
+                style.setAttribute("rel", "stylesheet");
+                style.setAttribute("type", "text/css");
+                style.setAttribute("href", KanJax.basePath + "ruby.css");
+            }
             style.id = "kanjax_ruby_style";
-            style.setAttribute("rel", "stylesheet");
-            style.setAttribute("type", "text/css");
-            style.setAttribute("href", KanJax.basePath + "ruby.css");
             document.head.appendChild(style);
         }
 
@@ -206,7 +225,7 @@ var KanJax = {
 
         // it not loading static local data, allow editing
         // for fields having "editable" class, the innerHTML will be edited.
-        if(!KanJax.loadStaticJSON) {
+        if(!KanJax.loadStaticJSON && !KanJax.loadJsBlob) {
             url = encodeURI(KanJax.basePath + "kanji_info.php?kanji=" + kanji);
             $("#kanjax_popup .editable").editable(url, {
                 id        : "key",
@@ -326,7 +345,7 @@ var KanJax = {
         
     // default click handler, uses jQuery + bPopup to show a nice popup
     activateKanjiPopup: function(e) {
-        var kanji, info, img, w, url, i, messageHandler;
+        var kanji, info, img, w, url, i, messageHandler, data, entry;
 
         e.preventDefault();
         e.stopPropagation();
@@ -343,9 +362,23 @@ var KanJax = {
         }
 
         // if not in cache, load via ajax
-        if(KanJax.loadStaticJSON)
+        if(KanJax.loadJsBlob) {
+            if(!(kanji in KanjaxBlob))
+                KanJax.showErrorPopup({status: "Kanji not found!"});
+            else {
+                data = {};
+                data[KanjaxBlobFields[0]] = kanji;
+                entry = KanjaxBlob[kanji];
+                for(var i = 0; i<entry.length; i++)
+                    data[KanjaxBlobFields[i+1]] = entry[i];
+                console.log(data);
+                console.log(KanjaxBlob[kanji]);
+                KanJax.showKanjiPopup(data, kanji);                
+            }
+        }
+        else if(KanJax.loadStaticJSON)
             KanJax.iframeRequest(
-                encodeURI(KanJax.basePath + "static_data/" + kanji.charCodeAt(0) + ".html"),
+                encodeURI(KanJax.staticDataPath + kanji.charCodeAt(0) + ".html"),
                 function(result) {
                     if(result.status == "OK") {
                         KanJax.kanjiPopupCache[kanji] = result.data;
@@ -1170,7 +1203,7 @@ var KanJax = {
         // collection needs to be sorted at each step, or something).
         coll = KanJax.useRubyElement ? el.getElementsByTagName("ruby") :
                     el.getElementsByClassName("kanjax_ruby");
-        KanJax.replaceAllWith(coll, function(el) {            
+        KanJax.replaceAllWith(coll, function(el) {           
             var rb, ch, chn;
             if(KanJax.useRubyElement) {
                 rb = el.getElementsByTagName('RB');
@@ -1201,7 +1234,7 @@ var KanJax = {
             return;
         }
 
-        if(KanJax.loadStaticJSON) {
+        if(KanJax.loadStaticJSON || KanJax.loadJsBlob) {
             if(settings.dict || settings.rubies || settings.full_reading)
                 console.log('dict, rubies, full_reading are not supported when using static data');
             settings.dict = settings.rubies = settings.full_reading = false;
@@ -1234,21 +1267,33 @@ var KanJax = {
 
         doc = el ? el.ownerDocument : document;
         if(!doc.getElementById("kanjax_style")) {
-            style = doc.createElement("link");
+            if(KanJax.loadJsBlob) {
+                style = document.createElement("style");
+                style.innerText = KanjaxCss;
+            }
+            else {
+                style = doc.createElement("link");
+                style.setAttribute("rel", "stylesheet");
+                style.setAttribute("type", "text/css");
+                style.setAttribute("href", KanJax.basePath + KanJax.styleFile);
+            }
             style.id = "kanjax_style";
-            style.setAttribute("rel", "stylesheet");
-            style.setAttribute("type", "text/css");
-            style.setAttribute("href", KanJax.basePath + KanJax.styleFile);
             doc.head.appendChild(style);
         }
 
         // load the css
         if(!document.getElementById('kanjax_ruby_style')) {
-            style = document.createElement("link");
+            if(KanJax.loadJsBlob) {
+                style = document.createElement("style");
+                style.innerText = KanjaxRubyCss;
+            }
+            else {
+                style = document.createElement("link");
+                style.setAttribute("rel", "stylesheet");
+                style.setAttribute("type", "text/css");
+                style.setAttribute("href", KanJax.basePath + "ruby.css");
+            }
             style.id = "kanjax_ruby_style";
-            style.setAttribute("rel", "stylesheet");
-            style.setAttribute("type", "text/css");
-            style.setAttribute("href", KanJax.basePath + "ruby.css");
             document.head.appendChild(style);
         }
     },

@@ -6,10 +6,12 @@
 <script src="lib/jquery-2.1.4.min.js"></script>
 <script src="lib/jquery.bpopup.min.js"></script>
 <script src="lib/jquery.jeditable.mini.js"></script>
+<script src="kanjax/kanjax_js_blob.js"></script>
 <script src="kanjax/kanjax.js"></script>
 <script language="JavaScript" type="text/javascript">
 $(function() {
     //KanJax.loadStaticJSON = true;
+    KanJax.loadJsBlob = true;
     KanJax.basicInstall(document.body, {
         kanji_info: 1,
         dict: 1,
