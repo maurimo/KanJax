@@ -10,6 +10,12 @@ a .kanjax {
     color: #a000a0  !important;
     cursor: pointer !important;
 }
+.night_mode .kanjax {
+    color: #40ffff !important;
+}
+.night_mode a .kanjax {
+    color: #60ff60 !important;
+}
 .kanjax_lemma {
     cursor:           pointer !important;
     border-radius:    5px     !important;

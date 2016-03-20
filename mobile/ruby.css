@@ -21,12 +21,10 @@
     user-select: none;
     -webkit-text-size-adjust:0;
 }
-ruby {
-    /* fixes webkit flickering */
+/*ruby {
     display: inline-block;
 }
 rt {
-    /* fixes webkit flickering */
     display: block;
 
     font-size: 65%;
@@ -37,4 +35,4 @@ rt {
     -webkit-touch-callout: none;
     user-select: none;
     -webkit-text-size-adjust:0;
-}
+}*/

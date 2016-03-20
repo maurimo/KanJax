@@ -1,10 +1,21 @@
 .kanji_popup {
-  width:         520px;
+  width:         {{Math.min(WIDTH-36, WIDTH/2+200)}}px;
   background-color: #ddf;
   border:        1px solid #00f;
-  padding:       1.2em;
-  border-radius: 0.8em;
+  padding:       0.6em;
+  border-radius: 0.4em;
   text-align:    center;
+}
+.night_mode #kanjax_popup {
+  background-color: #304040;
+  border:           1px solid #8080ff;
+}
+.night_mode #kanjax_popup img {
+  filter: invert(1);
+  -webkit-filter:invert(1);
+}
+.night_mode #kanjax_popup a {
+  color: #ffff00;
 }
 .kanji_popup div, .kanji_popup span, .kanji_popup td {
   cursor: default;
@@ -20,8 +31,8 @@
   word-break:  break-word;
 }
 .kanji_popup #strokes {
-  max-width: 520px;
-  max-height: 85px;
+  max-width: {{Math.min(WIDTH-36, WIDTH/2+200)-16}}px;
+  max-height: {{60+HEIGHT/50}}px;
 }
 .kanji_popup #onyomi, .kanji_popup #kunyomi {
   font-style: normal;
@@ -36,11 +47,11 @@
   margin-top: 0.2em;
   margin-bottom: 0.2em;
 }
-.kanji_popup .japanese { font-family: "Kochi Mincho"; }
-.kanji_popup .small {font-size: 13px;}
-.kanji_popup .medium {font-size: 16px;}
-.kanji_popup .large {font-size: 19px;}
-.kanji_popup .huge  {font-size: 32px;}
+/*.kanji_popup .japanese { font-family: "Kochi Mincho"; }*/
+.kanji_popup .small {font-size: {{Math.round(10+WHMIN/80)}}px;}
+.kanji_popup .medium {font-size: {{Math.round(13+WHMIN/60)}}px;}
+.kanji_popup .large {font-size: {{Math.round(16+WHMIN/43)}}px;}
+.kanji_popup .huge  {font-size: {{Math.round(22+WHMIN/27)}}px;}
 .kanji_popup .bold  {font-weight: bold;}
 .kanji_popup .italic {font-style: italic;}
 

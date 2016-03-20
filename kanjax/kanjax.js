@@ -15,6 +15,8 @@ var KanJax = {
     
     loadJsBlob: false,
     
+    closePopupOnClick: false,
+    
     hideTitleTooltips: true,
 
     profile: true,
@@ -141,7 +143,7 @@ var KanJax = {
         if(!document.getElementById('kanjax_popup_style')) {
             if(KanJax.loadJsBlob) {
                 style = document.createElement("style");
-                style.innerText = KanjaxPopupCss;
+                style.innerText = KanJax.expandStyleTemplates(KanjaxPopupCss);
             }
             else {
                 style = document.createElement("link");
@@ -212,6 +214,14 @@ var KanJax = {
             if(KanJax.bPopup)
                 KanJax.bPopup.close();
             KanJax.bPopup = $(div).bPopup({ speed: 120, position: [x, y] });
+            if(KanJax.closePopupOnClick) {
+                div.onclick = function() {
+                    if(KanJax.bPopup) {
+                        KanJax.bPopup.close();
+                        delete KanJax.bPopup;
+                    }
+                }
+            }
         }, 10);        
     },
     
@@ -371,8 +381,8 @@ var KanJax = {
                 entry = KanjaxBlob[kanji];
                 for(var i = 0; i<entry.length; i++)
                     data[KanjaxBlobFields[i+1]] = entry[i];
-                console.log(data);
-                console.log(KanjaxBlob[kanji]);
+                //console.log(data);
+                //console.log(KanjaxBlob[kanji]);
                 KanJax.showKanjiPopup(data, kanji);                
             }
         }
@@ -678,6 +688,23 @@ var KanJax = {
         var el = node.ownerDocument.createTextNode(text);
         KanJax.insertAfter(node, el);
         return el;
+    },
+    
+    expandStyleTemplates: function(template) {
+        var h = document.body.clientHeight;
+        var w = document.body.clientWidth;
+        var whmin = Math.min(w,h);
+        var content = template.replace(
+            /\{\{([^{}]+)\}\}/g,
+            function(match, expr) {
+                expr = expr.replace(/\bWIDTH\b/g, w);
+                expr = expr.replace(/\bHEIGHT\b/g, h);
+                expr = expr.replace(/\bWHMIN\b/g, whmin);
+                //console.log(expr);
+                return eval(expr);
+            });
+        console.log(content);
+        return content;
     },
     
     //KanJax.expandTemplate('{{%foo}} {{bar}} {{/foo}}',
